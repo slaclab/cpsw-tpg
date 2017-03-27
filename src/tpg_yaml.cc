@@ -295,7 +295,11 @@ namespace TPGen {
     return vec; }
 
   void TPGYaml::setEnergy(const std::vector<unsigned>& energy) {
-    IScalVal::create(_private->tpg->findByName("TPGControl/Energy"))->setVal(const_cast<unsigned*>(energy.data()),4);
+    IScalVal::create(_private->tpg->findByName("TPGControl/BeamEnergy"))->setVal(const_cast<unsigned*>(energy.data()),4);
+  }
+
+  void TPGYaml::setWavelength(const std::vector<unsigned>& wavelen) {
+    IScalVal::create(_private->tpg->findByName("TPGControl/PhotonWavelen"))->setVal(const_cast<unsigned*>(wavelen.data()),2);
   }
 
   void TPGYaml::dump() const {

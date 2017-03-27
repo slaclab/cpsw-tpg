@@ -49,6 +49,7 @@ namespace TPGen {
     void     clearHistoryBuffers   (unsigned);
     std::vector<FaultStatus> getHistoryStatus();
     void     setEnergy(const std::vector<unsigned>&);
+    void     setWavelength(const std::vector<unsigned>&);
 
     void     setSequenceRequired   (unsigned iseq, unsigned requiredMask);
     void     setSequenceDestination(unsigned iseq, TPGDestination);

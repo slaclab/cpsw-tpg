@@ -131,6 +131,10 @@ namespace TPGen {
     //  Program the beam energy meta data
     //
     virtual void setEnergy(const std::vector<unsigned>&) = 0;
+    //
+    //  Program the photon wavelength meta data
+    //
+    virtual void setWavelength(const std::vector<unsigned>&) = 0;
 
     //
     //  Set the mask of required parent sequences for the beam sequences
