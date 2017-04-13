@@ -20,7 +20,8 @@ namespace TPGen {
     void setAddress    (int seq, unsigned start=0, unsigned sync=1);
     void reset         ();
     void setMPSJump    (int mps, int seq, unsigned pclass, unsigned start=0);
-    void setBCSJump    (int seq, unsigned start=0);
+    void setBCSJump    (int seq, unsigned pclass, unsigned start=0);
+    void setMPSState   (int mps, unsigned sync=1);
  public:
     void      handle            (unsigned address);
   public:

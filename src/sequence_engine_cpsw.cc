@@ -371,8 +371,8 @@ void SequenceEngineCpsw::setAddress  (int seq, unsigned start, unsigned sync)
 {
   int a = _lookup_address(_private->_caches,seq,start);
   if (a>=0) {
-    _private->_jump->manSync ->setVal(&sync,1);
     _private->_jump->manStart->setVal(reinterpret_cast<unsigned*>(&a),1);
+    _private->_jump->manSync ->setVal(&sync,1);
   }
 }
 
@@ -389,7 +389,7 @@ void SequenceEngineCpsw::setMPSJump    (int mps, int seq, unsigned pclass, unsig
     if (a>=0) {
       IndexRange rng(mps);
       _private->_jump->mpsStart->setVal(reinterpret_cast<unsigned*>(&a),1,&rng);
-      _private->_jump->mpsClass->setVal(&pclass,1,&rng);
+      _private->_jump->mpsClass->setVal(reinterpret_cast<unsigned*>(&pclass),1,&rng);
     }
   }
   else {
@@ -397,16 +397,28 @@ void SequenceEngineCpsw::setMPSJump    (int mps, int seq, unsigned pclass, unsig
   }
 }
 
-void SequenceEngineCpsw::setBCSJump    (int seq, unsigned start)
+void SequenceEngineCpsw::setBCSJump    (int seq, unsigned pclass, unsigned start)
 {
   if (seq>=0) {
     int a = _lookup_address(_private->_caches,seq,start);
     if (a>=0) {
       _private->_jump->bcsStart->setVal(reinterpret_cast<unsigned*>(&a),1);
+      _private->_jump->bcsClass->setVal(reinterpret_cast<unsigned*>(&pclass),1);
     }
   }
   else
     ; //    _private->_jump->bcs = 0;    // disable
+}
+
+void SequenceEngineCpsw::setMPSState (int mps, unsigned sync)
+{
+  unsigned a, p;
+  IndexRange rng(mps);
+  _private->_jump->mpsStart->getVal(reinterpret_cast<unsigned*>(&a),1,&rng);
+  _private->_jump->mpsClass->getVal(reinterpret_cast<unsigned*>(&p),1,&rng);
+  _private->_jump->manStart->setVal(&a,1);
+  _private->_jump->manClass->setVal(&p,1);
+  _private->_jump->manSync ->setVal(&sync,1);
 }
 
 void SequenceEngineCpsw::dumpSequence(int index) const
