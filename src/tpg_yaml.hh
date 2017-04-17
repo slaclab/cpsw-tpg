@@ -93,6 +93,11 @@ namespace TPGen {
     void     setCounter      (unsigned, EventSelection*);
     unsigned getCounter      (unsigned);
 
+    //  MPS
+    void     getMpsState     (unsigned  destination, 
+                              unsigned& latch, 
+                              unsigned& state);
+
     //  Power line sampling ADC
     void     initADC         ();
 

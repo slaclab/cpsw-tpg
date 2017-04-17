@@ -61,4 +61,12 @@ yaml_tst_SRCS = yaml_tst.cc
 yaml_tst_LIBS = $(CPSW_LIBS)
 PROGRAMS    += yaml_tst
 
+strm_tst_SRCS = strm_tst.cc
+strm_tst_LIBS = $(CPSW_LIBS)
+PROGRAMS    += strm_tst
+
+mps_tst_SRCS = mps_tst.cc
+mps_tst_LIBS = $(CPSW_LIBS)
+PROGRAMS    += mps_tst
+
 include $(CPSW_DIR)/rules.mak

@@ -339,6 +339,24 @@ namespace TPGen {
     printr  (IrqControl);
     printr  (IrqStatus);
     printrn (BeamEnergy,4);
+    { printf("%15.15s:","MpsLink");
+      Path pgp_path = _private->root->findByName("mmio/AmcCarrierTimingGenerator/ApplicationCore/TPGMps/Pgp2bAxi/");
+      printf(" RxRdy[%c]", _GET_U32("PhyReadyRx",pgp_path) ? 'T':'F');
+      printf(" TxRdy[%c]", _GET_U32("PhyReadyTx",pgp_path) ? 'T':'F');
+      printf(" LocRdy[%c]", _GET_U32("LocalLinkReady",pgp_path) ? 'T':'F');
+      printf(" RemRdy[%c]", _GET_U32("RemoteLinkReady",pgp_path) ? 'T':'F');
+      printf(" RxClkF[%u]", _GET_U32("RxClockFreq",pgp_path));
+      printf(" TxClkF[%u]", _GET_U32("TxClockFreq",pgp_path));
+      printf("\n"); }
+    { printf("%15.15s:","MpsState(Latch)");
+      for(unsigned i=0; i<16; i++) {
+        IndexRange rng(i);
+        unsigned s = GET_U32I(MpsState,i);
+        unsigned v = GET_U32I(MpsLatch,i);
+        printf(" %02x(%02x)",s,v);
+        if ((i%10)==9) printf("\n                ");
+      }
+      printf("\n"); }
     printrn (BeamDiagStatus,4);
     printr  (SeqRestart);
 #if 0
@@ -527,6 +545,14 @@ namespace TPGen {
   }
   unsigned TPGYaml::getCounter      (unsigned i) { return GET_U32I(CounterDef,i); }
 
+  void     TPGYaml::getMpsState     (unsigned  destination, 
+                                     unsigned& latch, 
+                                     unsigned& state) 
+  {
+    IndexRange rng(destination);
+    IScalVal_RO::create(_private->tpg->findByName("TPGControl/MpsLatch"))->getVal(&latch,1,&rng);
+    IScalVal_RO::create(_private->tpg->findByName("TPGControl/MpsState"))->getVal(&state,1,&rng);
+  }
 
   Callback* TPGYaml::subscribeBSA     (unsigned bsaArray,
 					  Callback* cb)

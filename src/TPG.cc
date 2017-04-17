@@ -79,6 +79,9 @@ TPG ITPG::create(const char* name)
   f = IIntField::create("PhotonWavelen", 16, false, 0);
   v->CMMIODevImpl::addAtAddress(f, 0x0130, 2, 4);
 
+  f = IIntField::create("MpsState", 8, false, 0);
+  v->CMMIODevImpl::addAtAddress(f, 0x140, 16, 1);
+
   ADD_U1(CtrLock,0x17c,0);
   f = IIntField::create("CtrDef", 32, false, 0);
   v->CMMIODevImpl::addAtAddress(f, 0x180, 24, 8);

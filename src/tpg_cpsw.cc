@@ -49,6 +49,14 @@ static uint64_t GET_U1(Path pre)
   return r;
 }
 
+static unsigned _GET_U8(const char* name, Path path, unsigned index) 
+{
+  IndexRange rng(index);
+  unsigned v;
+  IScalVal_RO::create(path->findByName(name))->getVal(&v,1,&rng);
+  return v;
+}
+
 static unsigned _GET_U32(const char* name, Path path) 
 {
   unsigned v;
@@ -77,6 +85,7 @@ static void _SET_U32(const char* name, Path path, unsigned r)
   IScalVal::create(path->findByName(name))->setVal(&v,1);
 }
 
+#define GET_U8I(name,i) _GET_U8("mmio/tpg/"#name,_private->path,i)
 #define GET_U32(name)   _GET_U32("mmio/tpg/"#name,_private->path)
 #define GET_U32I(name,i) _GET_U32("mmio/tpg/"#name,_private->path,i)
 #define GET_U64(name)   _GET_U64("mmio/tpg/"#name,_private->path)
@@ -439,6 +448,14 @@ namespace TPGen {
     printr  (IrqControl);
     printr  (IrqStatus);
     printrn (Energy,4);
+    { printf("%15.15s:","MpsState(Latch)");
+      for(unsigned i=0; i<16; i++) {
+        unsigned s,v;
+        const_cast<TPGen::TPGCpsw*>(this)->getMpsState(i,s,v);
+        printf(" %02x(%02x)",s,v);
+        if ((i%10)==9) printf("\n                ");
+      }
+      printf("\n"); }
     printrn (BeamDiagStatus,4);
     printr  (SeqRestart);
 #if 0
@@ -755,6 +772,14 @@ namespace TPGen {
   }
   unsigned TPGCpsw::getCounter      (unsigned i) { return GET_U32I(CtrDef,i); }
 
+  void     TPGCpsw::getMpsState     (unsigned  destination, 
+                                     unsigned& latch, 
+                                     unsigned& state) 
+  {
+    unsigned word = GET_U8I(MpsState, destination);
+    latch = word&0xf;
+    state = (word>>4)&0xf;
+  }
 
   Callback* TPGCpsw::subscribeBSA     (unsigned bsaArray,
 					  Callback* cb)

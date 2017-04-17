@@ -210,10 +210,19 @@ namespace TPGen {
     //
     //  Programmable rate counters (NRateCounters)
     //
-    void     lockCounters    (bool);
-    void     setCounter      (unsigned, EventSelection*);
-    unsigned getCounter      (unsigned);
+    virtual void     lockCounters    (bool) = 0;
+    virtual void     setCounter      (unsigned, EventSelection*) = 0;
+    virtual unsigned getCounter      (unsigned) = 0;
 
+    //  
+    //  MPS state
+    //    Retrieve the latched state (limiting power class) for a destination and
+    //    the current state (allowed power class)
+    //
+    virtual void     getMpsState     (unsigned  destination, 
+                                      unsigned& latch, 
+                                      unsigned& state) = 0;
+ 
     //
     //  Asynchronous notification.
     //  Returns previously registered callback.

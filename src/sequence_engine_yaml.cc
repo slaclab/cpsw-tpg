@@ -19,7 +19,7 @@ namespace TPGen {
   public:
     SeqJump(Path p, unsigned iengine) :
       _startAddr(IScalVal::create(p->findByName("StartAddr"))),
-      _class    (IScalVal::create(p->findByName("unsigned"))),
+      _class    (IScalVal::create(p->findByName("PowerClass"))),
       _startSync(IScalVal::create(p->findByName("StartSync"))),
       _engine   (iengine)
     {}
