@@ -27,7 +27,10 @@ tpg_SRCS  = TPG.cc SeqState.cc SeqJump.cc SeqMem.cc RamControl.cc Sy56040.cc Axi
 tpg_SRCS += sequence_engine_cpsw.cc sequence_engine_yaml.cc
 tpg_SRCS += tpg_cpsw.cc user_sequence.cc event_selection.cc tpg_yaml.cc
 
+ncpsw_SRCS = Reg.cc
+
 STATIC_LIBRARIES+=tpg
+STATIC_LIBRARIES+=ncpsw
 
 tpg_tst_SRCS = tpg_tst.cc app.cc
 tpg_tst_LIBS = tpg bsa $(CPSW_LIBS)
@@ -66,7 +69,11 @@ strm_tst_LIBS = $(CPSW_LIBS)
 PROGRAMS    += strm_tst
 
 mps_tst_SRCS = mps_tst.cc
-mps_tst_LIBS = $(CPSW_LIBS)
+mps_tst_LIBS = tpg $(CPSW_LIBS)
 PROGRAMS    += mps_tst
+
+mpssim_tst_SRCS = mpssim_tst.cc
+mpssim_tst_LIBS = ncpsw pthread rt dl
+PROGRAMS    += mpssim_tst
 
 include $(CPSW_DIR)/rules.mak

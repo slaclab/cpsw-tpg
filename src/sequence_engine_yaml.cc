@@ -39,11 +39,9 @@ namespace TPGen {
       { IndexRange rng(_engine*16+val);
         _startAddr->getVal(&a,1,&rng);
         _class    ->getVal(&p,1,&rng); }
-      { IndexRange rng(_engine);
-        _startAddr->setVal(&a,1,&rng);
-        _class    ->setVal(&p,1,&rng);
-        _startSync->setVal(&sync,1,&rng); } }
-      
+      setManStart(a);
+      setManClass(p);
+      setManSync (sync); }
       
  private:
     ScalVal _startSync;
@@ -425,6 +423,7 @@ void SequenceEngineYaml::setBCSJump    (int seq, unsigned pclass, unsigned start
 void SequenceEngineYaml::setMPSState  (int mps, unsigned sync)
 {
   _private->_jump->setMpsState(mps,sync);
+  reset();
 }
 
 

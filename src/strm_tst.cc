@@ -35,8 +35,9 @@ int main(int argc, char** argv) {
   const char* ip = "10.0.2.103";
   unsigned short port = 8194;
   unsigned tdest=0;
+  unsigned reg=0, word=0;
 
-  while ( (c=getopt( argc, argv, "a:d:p:wh")) != EOF ) {
+  while ( (c=getopt( argc, argv, "a:d:p:r:w:h")) != EOF ) {
     switch(c) {
     case 'a':
       ip = optarg; break;
@@ -44,8 +45,10 @@ int main(int argc, char** argv) {
       tdest = strtoul(optarg,NULL,0); break;
     case 'p':
       port = strtoul(optarg,NULL,0); break;
+    case 'r':
+      reg  = strtoul(optarg,NULL,0); break;
     case 'w':
-      lWrite = true; break;
+      lWrite = true; word = strtoul(optarg,NULL,0); break;
     case '?':
     default:
       lUsage = true; break;
@@ -78,33 +81,34 @@ int main(int argc, char** argv) {
 
   Stream strm = IStream::create( path->findByName("irq") );
   CTimeout         tmo(100000);
-  CAxisFrameHeader hdr;
 
-  uint8_t buf[256];
+  uint8_t ibuf[256];
+  uint8_t buf [1500];
+  unsigned sz;
   int v;
 
-  if (lWrite) {
+  {
     CAxisFrameHeader hdr;
-    uint8_t          buf[1500];
     hdr.insert(buf, sizeof(buf));
     hdr.iniTail(buf + hdr.getSize()+0x8);
-    unsigned sz = hdr.getSize()+hdr.getTailSize()+0x8;
+    sz = hdr.getSize()+hdr.getTailSize()+0x8;
     uint32_t* bb = reinterpret_cast<uint32_t*>(&buf[hdr.getSize()]);
-    bb[0] = 1;  // read from address 0
-    bb[1] = 0xDEADBEEF;
+    bb[0] = (reg<<1) | (lWrite ? 0:1);
+    bb[1] = word;
     strm->write( (uint8_t*)buf, sz);
   }
 
-  while ((v=strm->read( buf, sizeof(buf), tmo, 0 ))>=0) {
+  while ((v=strm->read( ibuf, sizeof(buf), tmo, 0 ))>=0) {
 
     if (v) {
 
-      if (!hdr.parse(buf, sizeof(buf))) {
+      CAxisFrameHeader hdr;
+      if (!hdr.parse(ibuf, sizeof(ibuf))) {
         printf("bad header\n");
         continue;
       }
 
-      const uint32_t* bb = reinterpret_cast<const uint32_t*>(&buf[hdr.getSize()]);
+      const uint32_t* bb = reinterpret_cast<const uint32_t*>(&ibuf[hdr.getSize()]);
       printf("Frame %u  %04x:%04x\n",
              hdr.getFrameNo(),
              bb[0], bb[1]);
@@ -113,17 +117,7 @@ int main(int argc, char** argv) {
       
       usleep(100000);
 
-      if (lWrite) {
-        CAxisFrameHeader hdr;
-        uint8_t          buf[1500];
-        hdr.insert(buf, sizeof(buf));
-        hdr.iniTail(buf + hdr.getSize()+0x8);
-        unsigned sz = hdr.getSize()+hdr.getTailSize()+0x8;
-        uint32_t* bb = reinterpret_cast<uint32_t*>(&buf[hdr.getSize()]);
-        bb[0] = 1;  // read from address 0
-        bb[1] = 0xDEADBEEF;
-        strm->write( (uint8_t*)buf, sz);
-      }
+      strm->write( (uint8_t*)buf, sz);
 
     }
   }
