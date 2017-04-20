@@ -43,6 +43,14 @@ static uint64_t GET_U1(Path pre)
   return r;
 }
 
+static uint8_t _GET_U8(const char* name, Path path, unsigned index) 
+{
+  IndexRange rng(index);
+  uint8_t v;
+  IScalVal_RO::create(path->findByName(name))->getVal(&v,1,&rng);
+  return v;
+}
+
 static unsigned _GET_U32(const char* name, Path path) 
 {
   unsigned v;
@@ -72,10 +80,12 @@ static void _SET_U32(const char* name, Path path, unsigned r)
 }
 
 #define GET_U32(name)   _GET_U32("TPGControl/"#name,_private->tpg)
+#define GET_U8I(name,i) _GET_U8("TPGControl/"#name,_private->tpg,i)
 #define GET_U32I(name,i) _GET_U32("TPGControl/"#name,_private->tpg,i)
 #define GET_U64(name)   _GET_U64("TPGControl/"#name,_private->tpg)
 #define SET_U32(name,v) _SET_U32("TPGControl/"#name,_private->tpg,v)
 #define SET_REG(name,v) IScalVal::create(_private->tpg->findByName("TPGControl/"#name))->setVal(&v,1)
+#define SET_U32S(name,v) _SET_U32("TPGStatus/"#name,_private->tpg,v)
 #define GET_U32S(name)   _GET_U32("TPGStatus/"#name,_private->tpg)
 #define GET_U32SI(name,i) _GET_U32("TPGStatus/"#name,_private->tpg,i)
 
@@ -349,10 +359,11 @@ namespace TPGen {
       printf(" TxClkF[%u]", _GET_U32("TxClockFreq",pgp_path));
       printf("\n"); }
     { printf("%15.15s:","MpsState(Latch)");
-      for(unsigned i=0; i<16; i++) {
-        IndexRange rng(i);
-        unsigned s = GET_U32I(MpsState,i);
-        unsigned v = GET_U32I(MpsLatch,i);
+      IndexRange rng(0);
+      for(unsigned i=0; i<16; i++,++rng) {
+        unsigned s = GET_U8I(MpsState,i);
+        unsigned v = s&0xf;
+        s = (s>>4)&0xf;
         printf(" %02x(%02x)",s,v);
         if ((i%10)==9) printf("\n                ");
       }
@@ -392,15 +403,17 @@ namespace TPGen {
 	printf("\n                ");
     }
     printf("\n");
-    for(unsigned i=0; i<16; i++) {
-      printf("%11.11s[%02d]:","SeqJump",i);
-      for(unsigned j=0; j<16; j++) {
-        unsigned a;
-        IndexRange rng(16*i+j);
-        IScalVal_RO::create(_private->tpg->findByName("TPGSeqJump/StartAddr"))->getVal(&a,1,&rng);
-	printf(" %04x", a);
+    { ScalVal_RO r = IScalVal::create(_private->tpg->findByName("TPGSeqJump/StartAddr"));
+      IndexRange rng(0);
+      for(unsigned i=0; i<16; i++) {
+        printf("%11.11s[%02d]:","SeqJump",i);
+        for(unsigned j=0; j<16; j++, ++rng) {
+          unsigned a;
+          r->getVal(&a,1,&rng);
+          printf(" %04x", a);
+        }
+        printf("\n");
       }
-      printf("\n");
     }
   }
 
@@ -526,17 +539,17 @@ namespace TPGen {
     SET_REG(BsaComplete, ack);
   }
 
-  void TPGYaml::setCountInterval(unsigned v) { SET_U32(CountInterval,v); }
+  void TPGYaml::setCountInterval(unsigned v) { SET_U32S(CountIntv,v); }
   
-  unsigned TPGYaml::getPLLchanges   () const { return GET_U32(CountPLL); }
-  unsigned TPGYaml::get186Mticks    () const { return GET_U32(Count186M); }
-  unsigned TPGYaml::getSyncErrors   () const { return GET_U32(CountSyncE); }
-  unsigned TPGYaml::getCountInterval() const { return GET_U32(CountIntv); }
-  unsigned TPGYaml::getBaseRateTrigs() const { return GET_U32(CountBRT); }
-  unsigned TPGYaml::getInputTrigs(unsigned ch) const { return GET_U32I(CountTrig,ch); }
-  unsigned TPGYaml::getSeqSyncs (unsigned seq) const { return GET_U32I(CountSeq,seq); }
+  unsigned TPGYaml::getPLLchanges   () const { return GET_U32S(CountPLL); }
+  unsigned TPGYaml::get186Mticks    () const { return GET_U32S(Count186M); }
+  unsigned TPGYaml::getSyncErrors   () const { return GET_U32S(CountSyncE); }
+  unsigned TPGYaml::getCountInterval() const { return GET_U32S(CountIntv); }
+  unsigned TPGYaml::getBaseRateTrigs() const { return GET_U32S(CountBRT); }
+  unsigned TPGYaml::getInputTrigs(unsigned ch) const { return GET_U32SI(CountTrig,ch); }
+  unsigned TPGYaml::getSeqSyncs (unsigned seq) const { return GET_U32SI(CountSeq,seq); }
 
-  void     TPGYaml::lockCounters    (bool q) { SET_U32(CtrLock,(q?1:0)); }
+  void     TPGYaml::lockCounters    (bool q) { SET_U32(CounterLock,(q?1:0)); }
   void     TPGYaml::setCounter      (unsigned i, EventSelection* s)
   {
     IndexRange rng(i);
@@ -549,9 +562,9 @@ namespace TPGen {
                                      unsigned& latch, 
                                      unsigned& state) 
   {
-    IndexRange rng(destination);
-    IScalVal_RO::create(_private->tpg->findByName("TPGControl/MpsLatch"))->getVal(&latch,1,&rng);
-    IScalVal_RO::create(_private->tpg->findByName("TPGControl/MpsState"))->getVal(&state,1,&rng);
+    unsigned a = GET_U8I(MpsState,destination);
+    latch = a&0xf;
+    state = (a>>4)&0xf;
   }
 
   Callback* TPGYaml::subscribeBSA     (unsigned bsaArray,

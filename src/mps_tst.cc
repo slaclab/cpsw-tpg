@@ -67,7 +67,6 @@ static void* recover_thread(void* arg)
     unsigned mps;
     while( scanf("%u",&mps)!=1 ) ;
     p->engine(0).setMPSState(mps);
-    p->engine(0).reset();
   }
 }
 
@@ -84,6 +83,8 @@ int main(int argc, char* argv[])
   char* endptr = 0;
 
   unsigned latch_tag=0;
+  unsigned ieng=0;
+  unsigned istate=6;
 
   unsigned pc=0;
   int      dst=-1;
@@ -91,13 +92,19 @@ int main(int argc, char* argv[])
   opterr = 0;
 
   char opts[32];
-  sprintf(opts,"a:y:C:L:h");
+  sprintf(opts,"a:y:C:L:e:s:h");
 
   int c;
   while( (c=getopt(argc,argv,opts))!=-1 ) {
     switch(c) {
     case 'a':
       ip = optarg;
+      break;
+    case 'e':
+      ieng = strtoul(optarg,&endptr,0);
+      break;
+    case 's':
+      istate = strtoul(optarg,&endptr,0);
       break;
     case 'y':
       yaml = optarg;
@@ -121,6 +128,13 @@ int main(int argc, char* argv[])
   if (yaml) {
     Path path = IPath::loadYamlFile(yaml,"NetIODev");
     p = new TPGen::TPGYaml(path);
+
+    { char buff[256];
+      IndexRange rng(0,256);
+      IScalVal_RO::create(path->findByName("mmio/AmcCarrierTimingGenerator/AmcCarrierCore/AxiVersion/BuildStamp"))
+        ->getVal(reinterpret_cast<uint8_t*>(buff),256);
+      buff[255]=0;
+      printf("BuildString: %s\n",buff); }
   }
   else {
     printf("No yaml specified\n");
@@ -130,16 +144,20 @@ int main(int argc, char* argv[])
   //  For sequence engine 0, setup allow tables for trivial rates
 
   { 
-    SequenceEngine& e = p->engine(0);
+    SequenceEngine& e = p->engine(ieng);
     remSequences(e);
     for(unsigned i=0; i<7; i++) {
       int iseq = addSequence( e, 6-i);
       if (iseq < 0)
         return -1;
-      else
-        e.setMPSJump(i, iseq, i);
+      else {
+        e.setMPSJump(2*i+0, iseq, 2*i);
+        e.setMPSJump(2*i+1, iseq, 2*i);
+        if (i==0) e.setBCSJump(iseq, i);
+      }
     }
-    e.setMPSState(6); 
+    
+    e.setMPSState(istate); 
   }
 
   //  For sequence engine 16, setup full rate + engine 0 dependence
@@ -147,8 +165,8 @@ int main(int argc, char* argv[])
     SequenceEngine& e = p->engine(16);
     remSequences(e);
 
-    p->setSequenceRequired   (16,0x1);
-    p->setSequenceDestination(16,0);
+    p->setSequenceRequired   (16,(1<<ieng));
+    p->setSequenceDestination(16,ieng);
 
     int iseq = addSequence(e, 0); 
     e.setAddress(iseq);
@@ -157,14 +175,19 @@ int main(int argc, char* argv[])
 
   p->dump();
 
+  p->engine(ieng).dump();
+  p->engine(16).dump();
+
   pthread_attr_t attr;
   pthread_attr_init(&attr);
   pthread_t rthread;
   pthread_create(&rthread, &attr, &recover_thread, p);
 
-  { FixedRateSelect evt(0,0x1);  // all beam requests for destn 0
+  //  { FixedRateSelect evt(0,0x1);  // all beam requests for destn 0
+  { FixedRateSelect evt(0,(1<<ieng));
     p->setCounter(0, &evt); }
   p->lockCounters(true);
+  p->lockCounters(false);
 
   while(1) {
     sleep(1);
@@ -173,6 +196,7 @@ int main(int argc, char* argv[])
     p->getMpsState(0,latch,state);
     printf("MPS latch [%u]  state [%u]  Beam Rate [%u]\n",
            latch, state, p->getCounter(0));
+    p->lockCounters(false);
   }
 
   return 0;

@@ -19,34 +19,42 @@ namespace TPGen {
   public:
     SeqJump(Path p, unsigned iengine) :
       _startAddr(IScalVal::create(p->findByName("StartAddr"))),
-      _class    (IScalVal::create(p->findByName("PowerClass"))),
       _startSync(IScalVal::create(p->findByName("StartSync"))),
       _engine   (iengine)
     {}
   public:
     void    setManSync (unsigned   sync) { IndexRange rng(_engine);         _startSync->setVal(&sync,1,&rng); }
-    void    setManStart(unsigned   addr) { IndexRange rng(_engine*16+15);   _startAddr->setVal(&addr,1,&rng); }
-    void    setManClass(unsigned   val ) { IndexRange rng(_engine*16+15);   _class    ->setVal(&val,1,&rng); }
-    void    setBcsStart(unsigned   addr) { IndexRange rng(_engine*16+14);   _startAddr->setVal(&addr,1,&rng); }
-    void    setBcsClass(unsigned   val ) { IndexRange rng(_engine*16+14);   _class    ->setVal(&val,1,&rng); }
+    void    setManStart(unsigned   addr, unsigned pclass) { 
+      IndexRange rng(_engine*16+15);   
+      unsigned v = (addr&0xfff) | ((pclass&0xf)<<12);
+      _startAddr->setVal(&v,1,&rng); 
+    }
+    void    setBcsStart(unsigned   addr,
+                        unsigned   pclass) { 
+      IndexRange rng(_engine*16+14);
+      unsigned v = (addr&0xfff) | ((pclass&0xf)<<12);
+      _startAddr->setVal(&v,1,&rng); 
+    }
     void    setMpsStart(unsigned   chan,
-                        unsigned   addr) { IndexRange rng(_engine*16+chan); _startAddr->setVal(&addr,1,&rng); }
-    void    setMpsClass(unsigned   chan,
-                        unsigned   val ) { IndexRange rng(_engine*16+chan); _class    ->setVal(&val,1,&rng); }
+                        unsigned   addr,
+                        unsigned   pclass) { 
+      IndexRange rng(_engine*16+chan); 
+      unsigned v = (addr&0xfff) | ((pclass&0xf)<<12);
+      _startAddr->setVal(&v,1,&rng); 
+    }
     void    setMpsState(unsigned   val ,
                         unsigned   sync) 
     { unsigned a,p;
       { IndexRange rng(_engine*16+val);
         _startAddr->getVal(&a,1,&rng);
-        _class    ->getVal(&p,1,&rng); }
-      setManStart(a);
-      setManClass(p);
+        p = (a>>12)&0xf;
+        a &= 0xfff; }
+      setManStart(a,p);
       setManSync (sync); }
       
  private:
     ScalVal _startSync;
     ScalVal _startAddr;
-    ScalVal _class;
     unsigned _engine;
   };
 
@@ -382,7 +390,7 @@ void SequenceEngineYaml::setAddress  (int seq, unsigned start, unsigned sync)
 {
   int a = _lookup_address(_private->_caches,seq,start);
   if (a>=0) {
-    _private->_jump->setManStart(a);
+    _private->_jump->setManStart(a,0);
     _private->_jump->setManSync (sync);
   }
 }
@@ -398,8 +406,7 @@ void SequenceEngineYaml::setMPSJump    (int mps, int seq, unsigned pclass, unsig
   if (seq>=0) {
     int a = _lookup_address(_private->_caches,seq,start);
     if (a>=0) {
-      _private->_jump->setMpsStart(mps,a);
-      _private->_jump->setMpsClass(mps,pclass);
+      _private->_jump->setMpsStart(mps,a,pclass);
     }
   }
   else {
@@ -412,8 +419,7 @@ void SequenceEngineYaml::setBCSJump    (int seq, unsigned pclass, unsigned start
   if (seq>=0) {
     int a = _lookup_address(_private->_caches,seq,start);
     if (a>=0) {
-      _private->_jump->setBcsStart(a);
-      _private->_jump->setBcsClass(pclass);
+      _private->_jump->setBcsStart(a,pclass);
     }
   }
   else
