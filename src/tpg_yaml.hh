@@ -129,6 +129,7 @@ namespace TPGen {
     void handleIrq ();
   private:
     void enableIrq (unsigned,bool);
+    void _dumpSeqState(unsigned,unsigned) const;
   protected:
     class PrivateData;
     PrivateData* _private;

@@ -43,11 +43,15 @@ static void remSequences(SequenceEngine& e)
   }
 }
 
-static int addSequence(SequenceEngine& e, unsigned sync)
+static int addSequence(SequenceEngine& e, unsigned sync, unsigned n)
 {
   std::vector<Instruction*> seq;
   seq.push_back(new FixedRateSync(sync,1));
-  seq.push_back(new BeamRequest  (_charge));
+  while(n--) {
+    seq.push_back(new BeamRequest  (_charge));
+    if (n)
+      seq.push_back(new FixedRateSync(0,1));
+  }
   seq.push_back(new Branch       (0));
 
   int nseq = e.insertSequence(seq);
@@ -59,14 +63,20 @@ static int addSequence(SequenceEngine& e, unsigned sync)
   return nseq;
 }
  
+struct ThreadArgs { 
+  TPGen::TPG* tpg;
+  unsigned    ieng;
+};
+
 static void* recover_thread(void* arg)
 {
-  TPGen::TPG* p = reinterpret_cast<TPGen::TPG*>(arg);
+  ThreadArgs* a = reinterpret_cast<ThreadArgs*>(arg);
+  TPGen::TPG* p = a->tpg;
 
   while(1) {
     unsigned mps;
     while( scanf("%u",&mps)!=1 ) ;
-    p->engine(0).setMPSState(mps);
+    p->engine(a->ieng).setMPSState(mps);
   }
 }
 
@@ -141,18 +151,17 @@ int main(int argc, char* argv[])
     return -1;
   }
 
-  //  For sequence engine 0, setup allow tables for trivial rates
+  //  For sequence engine ieng, setup allow tables for trivial rates
 
   { 
     SequenceEngine& e = p->engine(ieng);
     remSequences(e);
-    for(unsigned i=0; i<7; i++) {
-      int iseq = addSequence( e, 6-i);
+    for(unsigned i=0; i<14; i++) {
+      int iseq = addSequence( e, 6-i/2, 1+(i&1));
       if (iseq < 0)
         return -1;
       else {
-        e.setMPSJump(2*i+0, iseq, 2*i);
-        e.setMPSJump(2*i+1, iseq, 2*i);
+        e.setMPSJump(i, iseq, i);
         if (i==0) e.setBCSJump(iseq, i);
       }
     }
@@ -162,13 +171,26 @@ int main(int argc, char* argv[])
 
   //  For sequence engine 16, setup full rate + engine 0 dependence
   {
-    SequenceEngine& e = p->engine(16);
+    SequenceEngine& e = p->engine(16+ieng);
     remSequences(e);
 
-    p->setSequenceRequired   (16,(1<<ieng));
-    p->setSequenceDestination(16,ieng);
+    p->setSequenceRequired   (16+ieng,(1<<ieng));
+    p->setSequenceDestination(16+ieng,ieng);
 
-    int iseq = addSequence(e, 0); 
+    int iseq = addSequence(e, 0, 1); 
+    e.setAddress(iseq);
+    e.reset();
+  }
+
+  //  Special request for 10Hz to destination 0
+  {
+    SequenceEngine& e = p->engine(31);
+    remSequences(e);
+
+    p->setSequenceRequired   (31,(1<<0));
+    p->setSequenceDestination(31,0);
+
+    int iseq = addSequence(e, 5, 1); 
     e.setAddress(iseq);
     e.reset();
   }
@@ -178,25 +200,33 @@ int main(int argc, char* argv[])
   p->engine(ieng).dump();
   p->engine(16).dump();
 
+  ThreadArgs* args = new ThreadArgs;
+  args->tpg  = p;
+  args->ieng = ieng;
+
   pthread_attr_t attr;
   pthread_attr_init(&attr);
   pthread_t rthread;
-  pthread_create(&rthread, &attr, &recover_thread, p);
+  pthread_create(&rthread, &attr, &recover_thread, args);
 
   //  { FixedRateSelect evt(0,0x1);  // all beam requests for destn 0
-  { FixedRateSelect evt(0,(1<<ieng));
-    p->setCounter(0, &evt); }
-  p->lockCounters(true);
-  p->lockCounters(false);
+  for(unsigned i=0; i<16; i++) {
+    FixedRateSelect evt(0,(1<<i));
+    p->setCounter(i, &evt);
+  }
 
   while(1) {
     sleep(1);
-    p->lockCounters(true);
-    unsigned latch, state;
-    p->getMpsState(0,latch,state);
-    printf("MPS latch [%u]  state [%u]  Beam Rate [%u]\n",
-           latch, state, p->getCounter(0));
-    p->lockCounters(false);
+    printf("%17.17s","MPS latch[state]:");
+    for(unsigned i=0; i<16; i++) {
+      unsigned latch, state;
+      p->getMpsState(i,latch,state);
+      printf("   %02u [%02u]",latch,state);
+    }
+    printf("\n%17.17s","Beam Rates:");
+    for(unsigned i=0; i<16; i++)
+      printf(" %9.9u", p->getCounter(i));
+    printf("\n");
   }
 
   return 0;

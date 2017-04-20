@@ -89,6 +89,8 @@ static void _SET_U32(const char* name, Path path, unsigned r)
 #define GET_U32S(name)   _GET_U32("TPGStatus/"#name,_private->tpg)
 #define GET_U32SI(name,i) _GET_U32("TPGStatus/"#name,_private->tpg,i)
 
+
+
 namespace TPGen {
 
   static void* poll_irq(void* arg)
@@ -387,21 +389,11 @@ namespace TPGen {
     printrs (CountIntv);
     printrs (CountBRT);
     printrsn(CountTrig,12);
-    printrsn(CountSeq,28);
-    printf("%15.15s:","SeqState");
-    for(unsigned i=0; i<28; i++) {
-      sprintf(buff,"TPGSeqState/SeqIndex[%u]",i);
-      printf(" %08x",_GET_U32(buff,_private->tpg));
-      IndexRange rng(i);
-      unsigned cc[4];
-      IScalVal_RO::create(_private->tpg->findByName("TPGSeqState/SeqCondACount"))->getVal(&cc[0],1,&rng);
-      IScalVal_RO::create(_private->tpg->findByName("TPGSeqState/SeqCondBCount"))->getVal(&cc[1],1,&rng);
-      IScalVal_RO::create(_private->tpg->findByName("TPGSeqState/SeqCondCCount"))->getVal(&cc[2],1,&rng);
-      IScalVal_RO::create(_private->tpg->findByName("TPGSeqState/SeqCondDCount"))->getVal(&cc[3],1,&rng);
-      printf(" :%u:%u:%u:%u",cc[0],cc[1],cc[2],cc[3]);
-      if ((i%5)==4)
-	printf("\n                ");
-    }
+
+    _dumpSeqState(0,nAllowEngines());
+    _dumpSeqState(nAllowEngines(),nBeamEngines());
+    _dumpSeqState(nAllowEngines()+nBeamEngines(),nExptEngines());
+    
     printf("\n");
     { ScalVal_RO r = IScalVal::create(_private->tpg->findByName("TPGSeqJump/StartAddr"));
       IndexRange rng(0);
@@ -691,5 +683,37 @@ namespace TPGen {
   void TPGYaml::initADC()
   {
   }
+
+  void TPGYaml::_dumpSeqState(unsigned seq0, unsigned nseq) const
+  {
+    char buff[256];
+
+    { printf("%15.15s:","CountSeq");
+      unsigned i=seq0;
+      for(unsigned j=0; j<nseq; j++,i++) {
+        printf(" %08x",GET_U32SI(CountSeq,i));
+        if ((j%10)==9) printf("\n                ");
+      }
+      printf("\n"); }
+
+    { printf("%15.15s:","SeqState");
+      unsigned i=seq0;
+      for(unsigned j=0; j<nseq; i++,j++) {
+        sprintf(buff,"TPGSeqState/SeqIndex[%u]",i);
+        printf(" %08x",_GET_U32(buff,_private->tpg));
+        IndexRange rng(i);
+        unsigned cc[4];
+        IScalVal_RO::create(_private->tpg->findByName("TPGSeqState/SeqCondACount"))->getVal(&cc[0],1,&rng);
+        IScalVal_RO::create(_private->tpg->findByName("TPGSeqState/SeqCondBCount"))->getVal(&cc[1],1,&rng);
+        IScalVal_RO::create(_private->tpg->findByName("TPGSeqState/SeqCondCCount"))->getVal(&cc[2],1,&rng);
+        IScalVal_RO::create(_private->tpg->findByName("TPGSeqState/SeqCondDCount"))->getVal(&cc[3],1,&rng);
+        printf(" :%u:%u:%u:%u",cc[0],cc[1],cc[2],cc[3]);
+        if ((j%5)==4)
+          printf("\n                ");
+      }
+      printf("\n");
+    }
+  }
+
 
 };
