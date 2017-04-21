@@ -84,7 +84,8 @@ namespace TPGen {
     void     setCountInterval(unsigned v);
     unsigned getBaseRateTrigs() const;  // Base rate triggers/frames
     unsigned getInputTrigs   (unsigned ch) const; // Input triggers
-    unsigned getSeqSyncs     (unsigned seq) const; // Sequence sync commands
+    unsigned getSeqRequests  (unsigned seq) const; // Sequence requests
+    unsigned getSeqRequests  (unsigned* array, unsigned array_size) const; // Sequence requests
 
     //  Programmable rate counters (NRateCounters)
     void     lockCounters    (bool);

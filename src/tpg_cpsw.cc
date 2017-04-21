@@ -761,7 +761,15 @@ namespace TPGen {
   unsigned TPGCpsw::getCountInterval() const { return GET_U32(CountInterval); }
   unsigned TPGCpsw::getBaseRateTrigs() const { return GET_U32(BaseRateCount); }
   unsigned TPGCpsw::getInputTrigs(unsigned ch) const { return GET_U32I(CountTrig,ch); }
-  unsigned TPGCpsw::getSeqSyncs (unsigned seq) const { return GET_U32I(CountSeq,seq); }
+  unsigned TPGCpsw::getSeqRequests  (unsigned seq) const { return GET_U32I(CountSeq,seq); }
+  unsigned TPGCpsw::getSeqRequests  (unsigned* array, unsigned array_size) const
+  { unsigned n = array_size;
+    const unsigned NSEQUENCES = nAllowEngines()+nBeamEngines()+nExptEngines();
+    if (n > NSEQUENCES)
+      n = NSEQUENCES;
+    IScalVal_RO::create(_private->path->findByName("TPGStatus/CountSeq"))->getVal(array,n);
+    return n;
+  }
 
   void     TPGCpsw::lockCounters    (bool q) { SET_U32(CtrLock,(q?1:0)); }
   void     TPGCpsw::setCounter      (unsigned i, EventSelection* s)

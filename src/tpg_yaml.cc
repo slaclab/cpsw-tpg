@@ -539,7 +539,15 @@ namespace TPGen {
   unsigned TPGYaml::getCountInterval() const { return GET_U32S(CountIntv); }
   unsigned TPGYaml::getBaseRateTrigs() const { return GET_U32S(CountBRT); }
   unsigned TPGYaml::getInputTrigs(unsigned ch) const { return GET_U32SI(CountTrig,ch); }
-  unsigned TPGYaml::getSeqSyncs (unsigned seq) const { return GET_U32SI(CountSeq,seq); }
+  unsigned TPGYaml::getSeqRequests  (unsigned seq) const { return GET_U32SI(CountSeq,seq); }
+  unsigned TPGYaml::getSeqRequests  (unsigned* array, unsigned array_size) const
+  { unsigned n = array_size;
+    const unsigned NSEQUENCES = nAllowEngines()+nBeamEngines()+nExptEngines();
+    if (n > NSEQUENCES)
+      n = NSEQUENCES;
+    IScalVal_RO::create(_private->tpg->findByName("TPGStatus/CountSeq"))->getVal(array,n);
+    return n;
+  }
 
   void     TPGYaml::lockCounters    (bool q) { SET_U32(CounterLock,(q?1:0)); }
   void     TPGYaml::setCounter      (unsigned i, EventSelection* s)
@@ -689,11 +697,21 @@ namespace TPGen {
     char buff[256];
 
     { printf("%15.15s:","CountSeq");
+#if 0
       unsigned i=seq0;
       for(unsigned j=0; j<nseq; j++,i++) {
         printf(" %08x",GET_U32SI(CountSeq,i));
         if ((j%10)==9) printf("\n                ");
       }
+#else
+      unsigned seqcount[seq0+nseq];
+      getSeqRequests(seqcount,seq0+nseq);
+      unsigned i=seq0;
+      for(unsigned j=0; j<nseq; j++,i++) {
+        printf(" %08x",seqcount[i]);
+        if ((j%10)==9) printf("\n                ");
+      }
+#endif
       printf("\n"); }
 
     { printf("%15.15s:","SeqState");

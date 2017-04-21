@@ -204,9 +204,11 @@ namespace TPGen {
     //
     //  Counts per interval
     //
-    virtual void setCountInterval      (unsigned v) = 0;
+    virtual void setCountInterval    (unsigned v) = 0;
     virtual unsigned getBaseRateTrigs() const = 0;  // Base rate triggers/frames
-    virtual unsigned getSeqSyncs (unsigned seq) const = 0; // Sequence sync commands
+    // Sequence requests
+    virtual unsigned getSeqRequests  (unsigned seq) const = 0; 
+    virtual unsigned getSeqRequests  (unsigned* array, unsigned array_size) const = 0;
     //
     //  Programmable rate counters (NRateCounters)
     //
