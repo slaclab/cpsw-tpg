@@ -542,9 +542,9 @@ namespace TPGen {
   unsigned TPGYaml::getSeqRequests  (unsigned seq) const { return GET_U32SI(CountSeq,seq); }
   unsigned TPGYaml::getSeqRequests  (unsigned* array, unsigned array_size) const
   { unsigned n = array_size;
-    const unsigned NSEQUENCES = nAllowEngines()+nBeamEngines()+nExptEngines();
-    if (n > NSEQUENCES)
-      n = NSEQUENCES;
+    //    const unsigned NSEQUENCES = nAllowEngines()+nBeamEngines()+nExptEngines();
+    //    if (n > NSEQUENCES)
+    //      n = NSEQUENCES;
     IScalVal_RO::create(_private->tpg->findByName("TPGStatus/CountSeq"))->getVal(array,n);
     return n;
   }
@@ -704,13 +704,14 @@ namespace TPGen {
         if ((j%10)==9) printf("\n                ");
       }
 #else
-      unsigned seqcount[seq0+nseq];
-      getSeqRequests(seqcount,seq0+nseq);
+      unsigned* seqcount = new unsigned[64];
+      getSeqRequests(seqcount,64);
       unsigned i=seq0;
       for(unsigned j=0; j<nseq; j++,i++) {
         printf(" %08x",seqcount[i]);
         if ((j%10)==9) printf("\n                ");
       }
+      delete seqcount;
 #endif
       printf("\n"); }
 

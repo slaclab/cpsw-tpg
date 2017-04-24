@@ -24,18 +24,45 @@ void usage(const char* p) {
   printf("Usage: %s [-a <IP addr (dotted notation)>] [-p <port>] [-w]\n",p);
 }
 
+static bool lWrite = false;
+static unsigned reg=0, word=0;
+
+static void* write_thread(void* arg)
+{
+  Stream* pstrm = (Stream*)(arg);
+  Stream strm = *pstrm;
+
+  uint8_t buf [1500];
+  unsigned sz;
+  {
+    CAxisFrameHeader hdr;
+    hdr.insert(buf, sizeof(buf));
+    hdr.iniTail(buf + hdr.getSize()+0x8);
+    sz = hdr.getSize()+hdr.getTailSize()+0x8;
+    uint32_t* bb = reinterpret_cast<uint32_t*>(&buf[hdr.getSize()]);
+    bb[0] = (reg<<1) | (lWrite ? 0:1);
+    bb[1] = word;
+    strm->write( (uint8_t*)buf, sz);
+  }
+
+
+  while(1) {
+    usleep(100000);
+  
+    strm->write( (uint8_t*)buf, sz);
+  }  
+}
+
 int main(int argc, char** argv) {
 
   extern char* optarg;
 
   int c;
   bool lUsage = false;
-  bool lWrite = false;
 
   const char* ip = "10.0.2.103";
   unsigned short port = 8194;
   unsigned tdest=0;
-  unsigned reg=0, word=0;
 
   while ( (c=getopt( argc, argv, "a:d:p:r:w:h")) != EOF ) {
     switch(c) {
@@ -82,23 +109,15 @@ int main(int argc, char** argv) {
   Stream strm = IStream::create( path->findByName("irq") );
   CTimeout         tmo(100000);
 
+  pthread_attr_t attr;
+  pthread_attr_init(&attr);
+  pthread_t rthread;
+  pthread_create(&rthread, &attr, &write_thread, (void*)&strm);
+
   uint8_t ibuf[256];
-  uint8_t buf [1500];
-  unsigned sz;
   int v;
 
-  {
-    CAxisFrameHeader hdr;
-    hdr.insert(buf, sizeof(buf));
-    hdr.iniTail(buf + hdr.getSize()+0x8);
-    sz = hdr.getSize()+hdr.getTailSize()+0x8;
-    uint32_t* bb = reinterpret_cast<uint32_t*>(&buf[hdr.getSize()]);
-    bb[0] = (reg<<1) | (lWrite ? 0:1);
-    bb[1] = word;
-    strm->write( (uint8_t*)buf, sz);
-  }
-
-  while ((v=strm->read( ibuf, sizeof(buf), tmo, 0 ))>=0) {
+  while ((v=strm->read( ibuf, sizeof(ibuf), tmo, 0 ))>=0) {
 
     if (v) {
 
@@ -112,13 +131,6 @@ int main(int argc, char** argv) {
       printf("Frame %u  %04x:%04x\n",
              hdr.getFrameNo(),
              bb[0], bb[1]);
-             
-
-      
-      usleep(100000);
-
-      strm->write( (uint8_t*)buf, sz);
-
     }
   }
 
