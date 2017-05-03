@@ -389,6 +389,10 @@ namespace TPGen {
     printrs (CountIntv);
     printrs (CountBRT);
     printrsn(CountTrig,12);
+    printf("ProgCount: ");
+    for(unsigned i=0; i<8; i++)
+      printf(" %09u", const_cast<TPGYaml*>(this)->getCounter(i));
+    printf("\n");
 
     _dumpSeqState(0,nAllowEngines());
     _dumpSeqState(nAllowEngines(),nBeamEngines());
@@ -426,17 +430,25 @@ namespace TPGen {
   void TPGYaml::setSequenceRequired(unsigned iseq, unsigned requiredMask) 
   {
     //  Firmware wants index to start at beginning of beam sequence engines
+    if (iseq < nAllowEngines())
+      return;
     iseq -= nAllowEngines();
-    IndexRange rng(iseq);
-    IScalVal::create(_private->tpg->findByName("TPGControl/BeamSeqAllowMask"))->setVal(&requiredMask,1,&rng);
+    if (iseq < nBeamEngines()) {
+      IndexRange rng(iseq);
+      IScalVal::create(_private->tpg->findByName("TPGControl/BeamSeqAllowMask"))->setVal(&requiredMask,1,&rng);
+    }
   }
 
   void TPGYaml::setSequenceDestination(unsigned iseq, TPGDestination destn) 
   {
     //  Firmware wants index to start at beginning of beam sequence engines
+    if (iseq < nAllowEngines())
+      return;
     iseq -= nAllowEngines();
-    IndexRange rng(iseq);
-    IScalVal::create(_private->tpg->findByName("TPGControl/BeamSeqDestination"))->setVal(&destn,1,&rng);
+    if (iseq < nBeamEngines()) {
+      IndexRange rng(iseq);
+      IScalVal::create(_private->tpg->findByName("TPGControl/BeamSeqDestination"))->setVal(&destn,1,&rng);
+    }
   }
 
 #if 0

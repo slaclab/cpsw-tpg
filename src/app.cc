@@ -114,7 +114,7 @@ static unsigned next_ul(unsigned def, char*& endPtr)
   return (endPtr==p+1) ? def : v;
 }
 
-static const char* _opts = "nN:r:RSI:X:b:B:s:E:Mm:D:C:e:";
+static const char* _opts = "nN:r:RSI:X:b:B:s:E:Mm:D:C:c:e:";
 
 static const char* _usage = "  -b <bsaRate,nToAvg,nToAcq,array>\n  -n (notify)\n  -r sequence rate marker(0-9)\n  -s <seconds> (sleep before dumping fifo)\n  -B <TPFifo bit,select>\n  -I count_interval\n  -N seqfifo reads\n  -R (reset rate)\n  -S (force Sync)\n  -X rcvr reads\n  -E <energy0,energy1,energy2,energy3>\n  -M (manual fault)\n  -m <buffer> (clear fault)\n  -D <diagnostic sequence> -C <ns,num,den>\n";
 
@@ -150,6 +150,7 @@ int TPGen::execute(int argc, char* argv[], TPGen::TPG* p, bool lAsync)
   int diagSeq=-1;
   int ns=-1, num=-1, den=-1;
   int expSeq=-1;
+  int counter=-1, counterMask=-1;
   
   char* endPtr;
   int c;
@@ -165,6 +166,10 @@ int TPGen::execute(int argc, char* argv[], TPGen::TPG* p, bool lAsync)
       bsa_ntoavg = next_ul(bsa_ntoavg,endPtr);
       bsa_ntoacq = next_ul(bsa_ntoacq,endPtr);
       bsa_buffer = next_ul(bsa_buffer,endPtr);
+      break;
+    case 'c':
+      counter     = strtol (optarg,&endPtr,0);
+      counterMask = next_ul(counterMask,endPtr);
       break;
     case 'C':
       ns  = strtoul(optarg,&endPtr,0);
@@ -268,6 +273,9 @@ int TPGen::execute(int argc, char* argv[], TPGen::TPG* p, bool lAsync)
 
   if (clearFault>=0)
     p->clearHistoryBuffers(clearFault);
+
+  if (counter>=0)
+    p->setCounter(counter, new FixedRateSelect(0,counterMask));
 
   if (expSeq>=0) {
     unsigned istart=0;
