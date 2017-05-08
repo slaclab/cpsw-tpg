@@ -1,6 +1,15 @@
+R1.2.3      05/08/2017    Kukhee Kim (KHKIM)
+            Build with cpsw R3.5.4
+                    and bsa R1.0.1
+
+
+Below versions are built with CPSW R3.5.3
+R1.2.2        
+R1.2.1
+R1.2.0
+R1.1.0
 R1.0.0       03/22/2017    Kukhee Kim (KHKIM)
              Initial Release
-
 
 
 March 22, 2017    Prepare Initial Release for tpg userspace library
