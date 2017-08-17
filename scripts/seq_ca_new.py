@@ -12,7 +12,7 @@ NPowers    = 4
 evtsel     = ['Fixed Rate','AC Rate','Sequence']
 fixedRates = ['929kHz','71.4kHz','10.2kHz','1.02kHz','102Hz','10.2Hz','1.02Hz']
 intervals  = [1, 13, 91, 910, 9100, 91000, 910000]
-Prefix='TPG2'
+Prefix='TPG:SYS2:1'
 
 #  Instruction encoding/decoding
 instrName  = ['FixedRateSync', 'ACRateSync', 'Branch', 'CheckPoint', 'BeamRequest', 'ExptRequest']
@@ -42,7 +42,10 @@ class Instruction(object):
         self.args = args
 
     def encoding(self):
-        return tuple(self.args)
+        args = [0]*7
+        args[0] = len(self.args)-1
+        args[1:len(self.args)+1] = self.args
+        return args
 
 class FixedRateSync(Instruction):
 
@@ -99,8 +102,10 @@ class ControlRequest(Instruction):
 
 
 class Sequencer(QtGui.QWidget):
-    def __init__(self, index):
+    def __init__(self, base, index):
         super(Sequencer,self).__init__()
+
+        prefix = Prefix+':'+base+'%02d'%index
 
         self.index  = index
 
@@ -122,7 +127,7 @@ class Sequencer(QtGui.QWidget):
         self.descw = QtGui.QLineEdit('-')
         self.descw.setEnabled(False)
 
-        self.ninstr = Pv.Pv(Prefix+':ENG%d:COUNTERINSTRUCTION_RBV'%index)
+        self.ninstr = Pv.Pv(prefix+':INSTRCNT')
         self.ninstrw = QtGui.QLineEdit('0')
         self.ninstrw.setEnabled(False)
 
@@ -131,16 +136,16 @@ class Sequencer(QtGui.QWidget):
 
         self.log = QtGui.QTextEdit()
 
-        self.desc    = Pv.Pv(Prefix+':ENG%d:DESCINSTRSET'%index)
-        self.instr   = Pv.Pv(Prefix+':ENG%d:WFINSTRUCTION'%index)
-        self.idxseq  = Pv.Pv(Prefix+':ENG%d:IDXSEQ0'%index)
-        self.seqname = Pv.Pv(Prefix+':ENG%d:DESCSEQ0'%index)
-        self.idxseqr = Pv.Pv(Prefix+':ENG%d:IDXSEQREMOVE'%index)
-        self.seqr    = Pv.Pv(Prefix+':ENG%d:SEQREMOVE'%index)
-        self.insert  = Pv.Pv(Prefix+':ENG%d:INSERTINSTRSET'%index)
-        self.idxrun  = Pv.Pv(Prefix+':ENG%d:IDXSEQRESET'%index)
-        self.start   = Pv.Pv(Prefix+':ENG%d:JUMPSEQRESET'%index)
-        self.reset   = Pv.Pv(Prefix+':ENG%d:PROMPTRESET'%index)
+        self.desc    = Pv.Pv(prefix+':DESCINSTRS')
+        self.instr   = Pv.Pv(prefix+':INSTRS')
+        self.idxseq  = Pv.Pv(prefix+':SEQ00IDX')
+        self.seqname = Pv.Pv(prefix+':SEQ00DESC')
+        self.idxseqr = Pv.Pv(prefix+':RMVIDX')
+        self.seqr    = Pv.Pv(prefix+':RMVSEQ')
+        self.insert  = Pv.Pv(prefix+':INS')
+        self.idxrun  = Pv.Pv(prefix+':RUNIDX')
+        self.start   = Pv.Pv(prefix+':SCHEDRESET')
+        self.reset   = Pv.Pv(prefix+':FORCERESET')
 
     def wait(self, rset):
         (intv,ok) = self.interval.text().toInt()
@@ -254,8 +259,13 @@ class Sequencer(QtGui.QWidget):
         self.log.append(title)
         self.log.append('----')
 
+        encoding = [i]
         for instr in instrset:
-            self.instr.put( instr.encoding() )
+            encoding = encoding + instr.encoding()
+
+        print encoding
+
+        self.instr.put( tuple(encoding) )
 
         time.sleep(0.1)
 
@@ -286,7 +296,7 @@ class Sequencer(QtGui.QWidget):
 class BeamControl(Sequencer):
 
     def __init__(self, idx):
-        super(BeamControl,self).__init__(idx+NMpsSeq)
+        super(BeamControl,self).__init__('DST',idx)
         
         vbox = QtGui.QVBoxLayout()
 
@@ -354,7 +364,7 @@ class BeamControl(Sequencer):
 class ExptControl(Sequencer):
 
     def __init__(self, idx):
-        super(ExptControl,self).__init__(idx+NMpsSeq+NBeamSeq)
+        super(ExptControl,self).__init__('EXP',idx)
 
         vbox = QtGui.QVBoxLayout()
 
@@ -432,7 +442,7 @@ class ExptControl(Sequencer):
 class MpsControl(Sequencer):
 
     def __init__(self, idx):
-        super(MpsControl,self).__init__(idx)
+        super(MpsControl,self).__init__('ALW',idx)
 
         self.sequences = {}
 

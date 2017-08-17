@@ -7,7 +7,7 @@ from seq_ca_new import *
 from evtsel import *
 
 Do_Sim = False
-Prefix = 'TPG2'
+Prefix = 'TPG:SYS2:1'
 fixedRates = ['929kHz','71.4kHz','10.2kHz','1.02kHz','102Hz','10.2Hz','1.02Hz']
 NMpsSeq = 14
 
@@ -40,18 +40,20 @@ def PvW(name):
             
 class BasicSequence(object):
 
-    def __init__(self, index):
+    def __init__(self, base, index):
 
-        self.desc    = PvW(Prefix+':ENG%d:DESCINSTRSET'%index)
-        self.instr   = PvW(Prefix+':ENG%d:WFINSTRUCTION'%index)
-        self.idxseq  = PvW(Prefix+':ENG%d:IDXSEQ0'%index)
-        self.seqname = PvW(Prefix+':ENG%d:DESCSEQ0'%index)
-        self.idxseqr = PvW(Prefix+':ENG%d:IDXSEQREMOVE'%index)
-        self.seqr    = PvW(Prefix+':ENG%d:SEQREMOVE'%index)
-        self.insert  = PvW(Prefix+':ENG%d:INSERTINSTRSET'%index)
-        self.idxrun  = PvW(Prefix+':ENG%d:IDXSEQRESET'%index)
-        self.start   = PvW(Prefix+':ENG%d:JUMPSEQRESET'%index)
-        self.reset   = PvW(Prefix+':ENG%d:PROMPTRESET'%index)
+        prefix = Prefix+':'+base+'%02d:'%index
+
+        self.desc    = PvW(prefix+'DESCINSTRS')
+        self.instr   = PvW(prefix+'INSTRS')
+        self.idxseq  = PvW(prefix+'SEQ00IDX')
+        self.seqname = PvW(prefix+'SEQ00DESC')
+        self.idxseqr = PvW(prefix+'RMVIDX')
+        self.seqr    = PvW(prefix+'RMVSEQ')
+        self.insert  = PvW(prefix+'INS')
+        self.idxrun  = PvW(prefix+'RUNIDX')
+        self.start   = PvW(prefix+'SCHEDRESET')
+        self.reset   = PvW(prefix+'FORCERESET')
         
         self.seq = [-1]*NMpsSeq
 
@@ -93,7 +95,10 @@ class BasicSequence(object):
             nreq -= 1
         instrset.append( Branch.unconditional(0) )
 
-        if False:
+        title = 'Sync[%d]'%sync
+
+        if True:
+            print title+': line[%d]'%line
             i=0
             for instr in instrset:
                 print 'Put instruction(%d): '%i, 
@@ -104,10 +109,13 @@ class BasicSequence(object):
 
         self.remove( self.seq[line])
 
-        title = 'Sync[%d]'%sync
         self.desc.put(title)
+
+        encoding = [len(instrset)]
         for instr in instrset:
-            self.instr.put( instr.encoding() )
+            encoding = encoding + instr.encoding()
+        self.instr.put( tuple(encoding) )
+
         self.insert.put(1)
 
         #  Get the assigned sequence num
@@ -123,13 +131,15 @@ class BasicSequence(object):
 class MpsSequence(BasicSequence):
 
     def __init__(self, index):
-        super(MpsSequence,self).__init__(index)
+        super(MpsSequence,self).__init__('ALW',index)
+
+        prefix = Prefix+':ALW%02d:'%index
 
         self.seqp    = []
         self.pclass  = []
         for i in range(NMpsSeq):
-            self.seqp  .append(PvW(Prefix+':ENG%d'%index+':MPSCTRL%d_IDXSEQ'%i))
-            self.pclass.append(PvW(Prefix+':ENG%d'%index+':MPSCTRL%d_PCLASS'%i))
+            self.seqp  .append(PvW(prefix+'MPS%02dIDX'%i))
+            self.pclass.append(PvW(prefix+'MPS%02dPCLASS'%i))
 
     def program(self, line, sync, nreq, power):
         idx = self._program(line, sync, nreq)
@@ -185,8 +195,10 @@ class TableDisplay(QtGui.QWidget):
             print r
             if r[0]<16:
                 seq    = MpsSequence(r[0])
+            elif r[0]<32:
+                seq    = BasicSequence('DST',r[0]-16)
             else:
-                seq    = BasicSequence(r[0])
+                seq    = BasicSequence('EXP',r[0]-32)
             
             layout.addWidget(QtGui.QLabel(r[1]),idx+1,0,QtCore.Qt.AlignHCenter)
             group       = QtGui.QButtonGroup()
@@ -224,22 +236,22 @@ class RateDisplay(QtGui.QWidget):
         for idx in range(3):
             layout.addWidget(QtGui.QLabel(segmName[idx]),idx+1,0,QtCore.Qt.AlignHCenter)
             if Do_Sim==False:
-                layout.addWidget(PvInt(Prefix+':ENG%d:REQRATE'%(idx+16)),idx+1,1,QtCore.Qt.AlignHCenter)
-                layout.addWidget(PvInt(Prefix+':ENG%d:REQRATE'%(idx+ 0)),idx+1,2,QtCore.Qt.AlignHCenter)
+                layout.addWidget(PvInt(Prefix+':DST%02d:REQRATE'%idx),idx+1,1,QtCore.Qt.AlignHCenter)
+                layout.addWidget(PvInt(Prefix+':ALW%02d:REQRATE'%idx),idx+1,2,QtCore.Qt.AlignHCenter)
                 #  Program the rate counter
-                pv = PvW(Prefix+':RM%d:RATEMODE'%idx)
+                pv = PvW(Prefix+':RM%02d:RATEMODE'%idx)
                 pv.put(0)   # Fixed Rate
-                pv = PvW(Prefix+':RM%d:FIXEDRATE'%idx)
+                pv = PvW(Prefix+':RM%02d:FIXEDRATE'%idx)
                 pv.put(0)   # 1MHz
-                pv = PvW(Prefix+':RM%d:DESTMODE'%idx)
+                pv = PvW(Prefix+':RM%02d:DESTMODE'%idx)
                 pv.put(2)   # Inclusion
-                pv = PvW(Prefix+':RM%d:DESTMASK'%idx)
+                pv = PvW(Prefix+':RM%02d:DESTMASK'%idx)
                 pv.put(1<<idx)
                 #  Toggle it to load new programming
-                pv = PvW(Prefix+':RM%d:CTRL'%idx)
+                pv = PvW(Prefix+':RM%02d:CTRL'%idx)
                 pv.put(0)
                 pv.put(1)
-                layout.addWidget(PvInt(Prefix+':RM%d:COUNTER'%idx),idx+1,3,QtCore.Qt.AlignHCenter)
+                layout.addWidget(PvInt(Prefix+':RM%02d:CNT'%idx),idx+1,3,QtCore.Qt.AlignHCenter)
 
         self.setLayout(layout)
 
@@ -264,13 +276,17 @@ class AllowEngine:
         self.buttons = buttons
         self.state   = len(buttons)-1
 
-        self.pvsetstate = PvW(Prefix+':ENG%d:MPSSTATE'%engine)
+        prefix = Prefix+':ALW%02d:'%engine
 
-        self.pvstate = PvW(Prefix+':ENG%d:MPSST_STATE'%engine)
+        print prefix
+
+        self.pvsetstate = PvW(prefix+'MPSSETSTATE')
+
+        self.pvstate = PvW(prefix+'MPSSTATE')
         self.pvstate.monitor_start()
         self.pvstate.add_monitor_callback(self.updateState)
 
-        self.pvlatch = PvW(Prefix+':ENG%d:MPSST_LATCH'%engine)
+        self.pvlatch = PvW(prefix+'MPSLATCH')
         self.pvlatch.monitor_start()
         self.pvlatch.add_monitor_callback(self.updateLatch)
 
@@ -346,9 +362,10 @@ class RateTable(TableDisplay):
         idx=0
         for row in requestRowGen():
             if row[0]>15:
-                dest = PvW(Prefix+':ENG%d:DESTINATION'%row[0])
+                prefix = Prefix+':DST%02d:'%(row[0]-16)
+                dest = PvW(prefix+'DEST')
                 dest.put(row[2])
-                reqd = PvW(Prefix+':ENG%d:REQUIREDMASK'%row[0])
+                reqd = PvW(prefix+'REQMASK')
                 reqd.put(row[3])
                 self.bgroups[idx].buttons()[0].setChecked(True)
                 idx += 1

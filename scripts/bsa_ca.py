@@ -8,7 +8,7 @@ NArrays = 8
 
 states     = ['Done','Running']
 
-BsaPrefix=':BSAEDEF'
+BsaPrefix=':BSA'
 
 class PvPushB(QtGui.QPushButton):
 
@@ -32,8 +32,7 @@ class PvEditPushB(PvPushB):
 
     def __init__(self, pv, label):
         super(PvEditPushB, self).__init__(label)
-        print pv
-        
+
         self.pv = Pv.Pv(pv)
         self.pv.monitor_start()
         self.pv.add_monitor_callback(self.update)
@@ -47,8 +46,7 @@ class PvEditPushB(PvPushB):
 
     def update(self, err):
         q = self.pv.value
-        self.valueSet.emit(q)
-
+        self.valueSet.emit(QtCore.QString(q))
 
 class PvEvtTab(QtGui.QStackedWidget):
     
@@ -126,56 +124,58 @@ class BsaDisplay(QtGui.QWidget):
 
         vbox = QtGui.QVBoxLayout()
 
+        prefix=pvname+BsaPrefix+'%02i:'%index
+
         hbox = QtGui.QHBoxLayout()
         hbox.addStretch()
-        hbox.addWidget( PvEditDst(pvname+BsaPrefix+'%i:'%index,'DESTMODE','DESTMASK') )
+        hbox.addWidget( PvEditDst(prefix,'DESTMODE','DESTMASK') )
         hbox.addStretch()
         vbox.addLayout(hbox)
 
         hbox = QtGui.QHBoxLayout()
         hbox.addStretch()
-        hbox.addWidget( PvEditEvt(pvname+BsaPrefix+'%i:'%index,'RATEMODE') )
+        hbox.addWidget( PvEditEvt(prefix,'RATEMODE') )
         hbox.addStretch()
         vbox.addLayout(hbox)
 
         hbox = QtGui.QHBoxLayout()
         hbox.addStretch()
         hbox.addWidget( QtGui.QLabel('Max Severity') )
-        hbox.addWidget( PvEditCmb(pvname+BsaPrefix+'%i:'%index+'MEASSEVR', sevrsel) )
+        hbox.addWidget( PvEditCmb(prefix+'MEASSEVR', sevrsel) )
         hbox.addStretch()
         vbox.addLayout(hbox)
 
         hbox = QtGui.QHBoxLayout()
         hbox.addStretch()
         hbox.addWidget( QtGui.QLabel('Num to Average') )
-        hbox.addWidget( PvEditInt(pvname+BsaPrefix+'%i:'%index+'NTOAVG') )
+        hbox.addWidget( PvEditInt(prefix+'AVGCNT') )
         hbox.addStretch()
         vbox.addLayout(hbox)
 
         hbox = QtGui.QHBoxLayout()
         hbox.addStretch()
         hbox.addWidget( QtGui.QLabel('Num to Acquire') )
-        hbox.addWidget( PvEditInt(pvname+BsaPrefix+'%i:'%index+'NTOACQ') )
+        hbox.addWidget( PvEditInt(prefix+'MEASCNT') )
         hbox.addStretch()
         vbox.addLayout(hbox)
 
         hbox = QtGui.QHBoxLayout()
         hbox.addStretch()
-        hbox.addWidget( PvEditPushB(pvname+BsaPrefix+'%i:'%index+'CTRL','Start') )
+        hbox.addWidget( PvEditPushB(prefix+'CTRL','Start') )
         hbox.addStretch()
         vbox.addLayout(hbox)
 
         hbox = QtGui.QHBoxLayout()
         hbox.addStretch()
         hbox.addWidget( QtGui.QLabel('Num Averaged') )
-        hbox.addWidget( PvInt(pvname+BsaPrefix+'%i:'%index+'AVGCNT') )
+        hbox.addWidget( PvInt(prefix+'AVGCNTACT') )
         hbox.addStretch()
         vbox.addLayout(hbox)
 
         hbox = QtGui.QHBoxLayout()
         hbox.addStretch()
         hbox.addWidget( QtGui.QLabel('Num Acquired') )
-        hbox.addWidget( PvInt(pvname+BsaPrefix+'%i:'%index+'ACQCNT') )
+        hbox.addWidget( PvInt(prefix+'CNT') )
         hbox.addStretch()
         vbox.addLayout(hbox)
 
@@ -192,7 +192,7 @@ class Ui_MainWindow(object):
         edefIdx = QtGui.QComboBox()
         edefList = []
         for i in range(NArrays):
-            edefList.append( 'EDEF%d'%i )
+            edefList.append( 'BSA%02d'%i )
         edefIdx.addItems( edefList )
 
         bsaDisplay = QtGui.QStackedWidget()
@@ -216,8 +216,8 @@ class Ui_MainWindow(object):
 if __name__ == '__main__':
     print QtCore.PYQT_VERSION_STR
 
-    parser = argparse.ArgumentParser(description='simple pv monitor gui')
-    parser.add_argument("pv", help="pv to monitor")
+    parser = argparse.ArgumentParser(description='simple bsa gui')
+    parser.add_argument('--pv', help="TPG pv base", default='TPG:SYS2:1')
     args = parser.parse_args()
 
     app = QtGui.QApplication([])
