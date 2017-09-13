@@ -13,7 +13,7 @@ SRCDIR=.
 
 include $(CPSW_DIR)/defs.mak
 
-LDFLAGS+= -Wl,-Bstatic -static-libgcc
+#LDFLAGS+= -Wl,-Bstatic -static-libgcc
 LDFLAGS+=-L$(BSA)/$(TARCH)/lib
 
 INCLUDE_DIRS = $(BSA)/$(TARCH)/include
@@ -30,8 +30,11 @@ tpg_SRCS += tpg_cpsw.cc user_sequence.cc event_selection.cc tpg_yaml.cc
 
 ncpsw_SRCS = Reg.cc
 
+hps_SRCS = hps_utils.cc
+
 STATIC_LIBRARIES+=tpg
 STATIC_LIBRARIES+=ncpsw
+STATIC_LIBRARIES+=hps
 
 tpg_tst_SRCS = tpg_tst.cc app.cc
 tpg_tst_LIBS = tpg bsa $(CPSW_LIBS)
@@ -76,5 +79,13 @@ PROGRAMS    += mps_tst
 mpssim_tst_SRCS = mpssim_tst.cc
 mpssim_tst_LIBS = ncpsw pthread rt dl
 PROGRAMS    += mpssim_tst
+
+hps_control_SRCS = hps_control.cc
+hps_control_LIBS = $(CPSW_LIBS) hps pthread rt dl
+PROGRAMS    += hps_control
+
+hps_checkout_SRCS = hps_checkout.cc
+hps_checkout_LIBS = $(CPSW_LIBS) hps pthread rt dl
+PROGRAMS    += hps_checkout
 
 include $(CPSW_DIR)/rules.mak

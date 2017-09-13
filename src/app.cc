@@ -459,6 +459,16 @@ int TPGen::execute(int argc, char* argv[], TPGen::TPG* p, bool lAsync)
     }
   }
 
+  for(unsigned i=0; i<64;) {
+    printf("BSA%02u:", i);
+    for(unsigned j=0; j<8; j++,i++) {
+      unsigned nToAvg, avgToAcq;
+      p->queryBSA(i,nToAvg,avgToAcq);
+      printf(" %u.%u",nToAvg,avgToAcq);
+    }
+    printf("\n");
+  }
+
   if (lFault) {
     sleep(1);
     p->acquireHistoryBuffers(true);
