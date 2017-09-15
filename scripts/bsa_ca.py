@@ -58,14 +58,13 @@ class PvEvtTab(QtGui.QStackedWidget):
         acw = QtGui.QWidget()
         acl = QtGui.QVBoxLayout()
         acl.addWidget(PvEditCmb(pvname+'ACRATE',acRates))
-#        acl.addWidget(PvEditCmb(pvname+'ATS'  ,acTS))
+        acl.addWidget(PvEditCmb(pvname+'TSLOTMASK',acTS))
         acw.setLayout(acl)
         self.addWidget(acw)
         
         sqw = QtGui.QWidget()
         sql = QtGui.QVBoxLayout()
-#        sql.addWidget(PvEditCmb(pvname+'SEQIDX',seqIdxs))
-#        sql.addWidget(PvEditCmb(pvname+'SEQBIT',seqBits))
+        sql.addWidget(PvEditCmb(pvname+'EXPSEQ',seqIdxs))
         sql.addWidget(PvEditCmb(pvname+'EXPSEQBIT',seqBits))
         sqw.setLayout(sql)
         self.addWidget(sqw)
@@ -80,6 +79,7 @@ class PvEditEvt(QtGui.QWidget):
         evtcmb = PvEditCmb(pvname+mode,evtsel2)
         vbox.addWidget(evtcmb)
         vbox.addWidget(PvEvtTab(pvname,evtcmb))
+#        vbox.addSpacer()
         self.setLayout(vbox)
 
 class PvDstTab(QtGui.QWidget):
@@ -209,8 +209,8 @@ class Ui_MainWindow(object):
         vlayout.addWidget(bsaDisplay)
 
         self.centralWidget.setLayout(vlayout)
-        self.centralWidget.resize(300,500)
-        MainWindow.resize(300,500)
+        self.centralWidget.resize(300,550)
+        MainWindow.resize(300,550)
         MainWindow.setWindowTitle(sys.argv[0])
             
 if __name__ == '__main__':
