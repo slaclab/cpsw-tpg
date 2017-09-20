@@ -11,8 +11,10 @@ NPowers    = 4
 
 evtsel     = ['Fixed Rate','AC Rate','Sequence']
 fixedRates = ['929kHz','71.4kHz','10.2kHz','1.02kHz','102Hz','10.2Hz','1.02Hz']
+acRates    = ['60Hz','30Hz','10Hz','5Hz','1Hz','0.5Hz']
 intervals  = [1, 13, 91, 910, 9100, 91000, 910000]
-Prefix='TPG:SYS2:1'
+#Prefix='TPG:SYS2:1'
+Prefix='TPG:SYS2:2'
 
 #  Instruction encoding/decoding
 instrName  = ['FixedRateSync', 'ACRateSync', 'Branch', 'CheckPoint', 'BeamRequest', 'ExptRequest']
@@ -58,6 +60,17 @@ class FixedRateSync(Instruction):
         return 'FixedRateSync(%s) # occ(%d)'%(fixedRates[self.args[1]],self.args[2])
     
 
+class ACRateSync(Instruction):
+
+    opcode = 1
+
+    def __init__(self, timeslotm, marker, occ):
+        super(ACRateSync, self).__init__( (self.opcode, timeslotm, marker, occ) )
+
+    def print_(self):
+        return 'ACRateSync(%s/0x%x) # occ(%d)'%(acRates[self.args[2]],self.args[1],self.args[3])
+    
+
 class Branch(Instruction):
 
     opcode = 2
@@ -100,6 +113,67 @@ class ControlRequest(Instruction):
     def print_(self):
         return 'ControlRequest word %d'%self.args[1]
 
+class SequenceSync(QtGui.QGroupBox):
+    def __init__(self):
+        super(SequenceSync,self).__init__('Sync')
+
+        self.stack = QtGui.QStackedWidget()
+
+        self.source = QtGui.QComboBox()
+        self.source.addItem('FixedRate')
+        self.source.addItem('ACRate')
+        self.source.setCurrentIndex(0)
+
+        fhbox = QtGui.QHBoxLayout()
+        self.fsync       = QtGui.QComboBox()
+        self.fsync.addItems(fixedRates)
+        self.fsync.setCurrentIndex(6)  # Default to 1Hz Sync
+        fhbox.addWidget( self.fsync )
+        fsyncw = QtGui.QWidget()
+        fsyncw.setLayout(fhbox)
+        self.stack.addWidget(fsyncw)
+
+        ahbox = QtGui.QHBoxLayout()
+        self.async       = QtGui.QComboBox()
+        self.async.addItems(acRates)
+        self.async.setCurrentIndex(5)  # Default to 1Hz Sync
+        ahbox.addWidget(self.async)
+
+        self.tsmask = []
+        grid = QtGui.QGridLayout()
+        grid.addWidget( QtGui.QLabel('TS'), 0, 0 )
+        for i in range(6):
+            grid.addWidget( QtGui.QLabel('%d'%(i+1)), 0, i*2+1 )
+            chkB = QtGui.QCheckBox()
+            grid.addWidget( chkB, 0, i*2+2 )
+            self.tsmask.append(chkB)
+        ahbox.addLayout(grid)
+        asyncw = QtGui.QWidget()
+        asyncw.setLayout(ahbox)
+        self.stack.addWidget(asyncw)
+
+        self.source.currentIndexChanged.connect(self.stack.setCurrentIndex)
+
+        layout = QtGui.QVBoxLayout()
+        layout.addWidget(self.source)
+        layout.addWidget(self.stack)
+        self.setLayout(layout)
+
+    def instruction(self):
+        if self.source.currentIndex()==0:
+            return FixedRateSync(marker=self.fsync.currentIndex(),occ=1)
+        else:
+            tsmask = 0
+            for i in range(len(self.tsmask)):
+                if self.tsmask[i].isChecked():
+                    tsmask = tsmask + (1<<i)
+            return ACRateSync(timeslotm=tsmask,marker=self.async.currentIndex(),occ=1)
+
+    def interval(self):
+        if self.source.currentIndex()==0:
+            return intervals[self.fsync.currentIndex()]
+        else:
+            return 2457   # Number of 929kHz steps in 2.7 milliseconds
 
 class Sequencer(QtGui.QWidget):
     def __init__(self, base, index):
@@ -114,9 +188,12 @@ class Sequencer(QtGui.QWidget):
         self.interval  = QtGui.QLineEdit('1')
         self.interval.setValidator(self.intervalv)
 
-        self.sync     = QtGui.QComboBox()
-        self.sync.addItems(fixedRates)
-        self.sync.setCurrentIndex(6)  # Default to 1Hz Sync
+        self.repeatv = QtGui.QIntValidator()
+        self.repeatv.setRange(0,2000000)
+        self.repeat  = QtGui.QLineEdit('0')
+        self.repeat.setValidator(self.repeatv)
+
+        self.sync    = SequenceSync()
 
         self.execb = QtGui.QPushButton('Exec')
         self.execb.pressed.connect(self.execute)
@@ -184,12 +261,14 @@ class Sequencer(QtGui.QWidget):
         instrset = []
 
         #  Insert global sync instruction (1Hz?)
-        instrset.append(FixedRateSync(marker=self.sync.currentIndex(),occ=1))
+        instrset.append(self.sync.instruction())
         
         #  How many times to repeat beam requests in "1 second"
         #  nint = 910000/intv
         #  Global sync counts as 1 cycle
-        nint = (910000-1)/intv
+        (nint,ok) = self.repeat.text().toInt()
+        if nint==0:
+            nint = (self.sync.interval()-1)/intv
 
         rint = nint % 256
         if rint:
@@ -319,12 +398,7 @@ class BeamControl(Sequencer):
         hbox.addStretch()
         vbox.addLayout(hbox)
 
-        hbox = QtGui.QHBoxLayout()
-        hbox.addStretch()
-        hbox.addWidget( QtGui.QLabel('Sync') )
-        hbox.addWidget(self.sync)
-        hbox.addStretch()
-        vbox.addLayout(hbox)
+        vbox.addWidget(self.sync)
 
         hbox = QtGui.QHBoxLayout()
         hbox.addStretch()
@@ -389,7 +463,13 @@ class ExptControl(Sequencer):
 
         hbox = QtGui.QHBoxLayout()
         hbox.addStretch()
-        hbox.addWidget( QtGui.QLabel('Sync') )
+        hbox.addWidget( QtGui.QLabel('NRequests') )
+        hbox.addWidget( self.repeat )
+        hbox.addStretch()
+        vbox.addLayout(hbox)
+
+        hbox = QtGui.QHBoxLayout()
+        hbox.addStretch()
         hbox.addWidget(self.sync)
         hbox.addStretch()
         vbox.addLayout(hbox)
@@ -624,8 +704,8 @@ class Ui_MainWindow(object):
         vlayout.addWidget(seqDisplay)
 
         self.centralWidget.setLayout(vlayout)
-        self.centralWidget.resize(300,400)
-        MainWindow.resize(300,400)
+        self.centralWidget.resize(400,440)
+        MainWindow.resize(400,440)
         MainWindow.setWindowTitle(sys.argv[0])
 
 
