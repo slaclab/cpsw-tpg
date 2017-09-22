@@ -389,13 +389,17 @@ namespace TPGen {
     printrs (CountIntv);
     printrs (CountBRT);
     printrsn(CountTrig,12);
-    printf("ProgCount: ");
+    printf("%15.15s:","ProgCount: ");
     for(unsigned i=0; i<8; i++)
       printf(" %09u", const_cast<TPGYaml*>(this)->getCounter(i));
     printf("\n");
 
+    printf("-- Sequence Diagnostics:  CountSeq (# requests)  SeqState (instr# ctr0:ctr1:ctr2:ctr3)\n");
+    printf("%15.15s\n","--AllowEngines");
     _dumpSeqState(0,nAllowEngines());
+    printf("%15.15s\n","--BeamEngines");
     _dumpSeqState(nAllowEngines(),nBeamEngines());
+    printf("%15.15s\n","--ExptEngines");
     _dumpSeqState(nAllowEngines()+nBeamEngines(),nExptEngines());
     
     printf("\n");
@@ -709,29 +713,21 @@ namespace TPGen {
     char buff[256];
 
     { printf("%15.15s:","CountSeq");
-#if 0
-      unsigned i=seq0;
-      for(unsigned j=0; j<nseq; j++,i++) {
-        printf(" %08x",GET_U32SI(CountSeq,i));
-        if ((j%10)==9) printf("\n                ");
-      }
-#else
       unsigned* seqcount = new unsigned[64];
       getSeqRequests(seqcount,64);
       unsigned i=seq0;
       for(unsigned j=0; j<nseq; j++,i++) {
-        printf(" %08x",seqcount[i]);
+        printf(" %8u",seqcount[i]);
         if ((j%10)==9) printf("\n                ");
       }
       delete seqcount;
-#endif
       printf("\n"); }
 
     { printf("%15.15s:","SeqState");
       unsigned i=seq0;
       for(unsigned j=0; j<nseq; i++,j++) {
         sprintf(buff,"TPGSeqState/SeqIndex[%u]",i);
-        printf(" %08x",_GET_U32(buff,_private->tpg));
+        printf(" %8u",_GET_U32(buff,_private->tpg));
         IndexRange rng(i);
         unsigned cc[4];
         IScalVal_RO::create(_private->tpg->findByName("TPGSeqState/SeqCondACount"))->getVal(&cc[0],1,&rng);
