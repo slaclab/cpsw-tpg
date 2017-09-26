@@ -658,18 +658,20 @@ namespace TPGen {
         if ((irqStatus&(1<<IRQ_INTERVAL)) && _private->intervalCallback)
           _private->intervalCallback->routine();
         
-        if ((irqStatus&(1<<IRQ_BSA)) && _private->bsaCallback.size()) {
-          //uint64_t cmpl = *reinterpret_cast<uint64_t*>(&buf[hdr.getSize()+4]);
+        if ((irqStatus&(1<<IRQ_BSA))) {
           uint64_t cmpl = GET_U64(BsaComplete);
-          uint64_t q = cmpl;
-          for(unsigned i=0; q!=0; i++)
-            if (q & (1ULL<<i)) {
-              std::map<unsigned,Callback*>::iterator it=_private->bsaCallback.find(i);
-              if (it!=_private->bsaCallback.end())
-                it->second->routine();
-              q &= ~(1ULL<<i);
-            }
           SET_REG(BsaComplete, cmpl); // clear handled bits
+          if (_private->bsaCallback.size()) {
+            //uint64_t cmpl = *reinterpret_cast<uint64_t*>(&buf[hdr.getSize()+4]);
+            uint64_t q = cmpl;
+            for(unsigned i=0; q!=0; i++)
+              if (q & (1ULL<<i)) {
+                std::map<unsigned,Callback*>::iterator it=_private->bsaCallback.find(i);
+                if (it!=_private->bsaCallback.end())
+                  it->second->routine();
+                q &= ~(1ULL<<i);
+              }
+          }
         }
 
         if ((irqStatus&(1<<IRQ_FAULT)) && _private->faultCallback)
