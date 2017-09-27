@@ -1,3 +1,16 @@
+R1.2.5      09/27/2017    Matt Weaver (WEAVER)
+            fix irq thread to ack BSA irq even if not handled
+            added to dump() print out
+            added template yaml archive for generic HPS checkout
+            fixes for AC rates
+            Add example sequence script seq_setup.py
+            Add rate monitor test GUI
+            fix bsa_ca.py for new PV names
+            added yaml for generic HPS receiver checkout
+            added test code for checkout of HPS timing receivers
+            added launch_py_dev script for lcls-dev3 environment
+
+
 R1.2.4      08/10/2017    Kukhee Kim (KHKIM)
             Static build for test application
             Build against bsa R1.0.2
