@@ -158,8 +158,10 @@ namespace TPGen {
     }
     //  Start the asynchronous notification thread
     //  Shut it down (gracefully?) when the application exits
-    pthread_t      thread_id;
-    pthread_create(&thread_id, 0, poll_irq, (void*)this);
+    //  pthread_t      thread_id;
+    //  pthread_create(&thread_id, 0, poll_irq, (void*)this);
+    //
+    //  09-30-2017, Kukhee Kim, the polling thread will be created by epics with RT priority
 
     initializeRam();
   }
@@ -644,6 +646,7 @@ namespace TPGen {
     unsigned irqControl=0; SET_REG(IrqControl, irqControl);
     while(1) {
       unsigned irqStatus = GET_U32(IrqStatus);
+      irqStatus &= ~(1<<IRQ_BSA); // 09-29-2017, Kukhee Kim, quick bandage to ignore BSA ireq
       if (irqStatus==0) {
         usleep(10000);
       }
