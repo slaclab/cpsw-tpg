@@ -61,6 +61,7 @@ namespace Cphw {
     void setLCLS         ();
     void setLCLSII       ();
     void resetStats      ();
+    void rxReset         ();
     void bbReset         ();
     TimingStats  getStats() const;
     void dumpStats       () const;
@@ -77,6 +78,23 @@ namespace Cphw {
     Path _root;
     Path _timingRx;
     Path _alignRx;
+  };
+
+  class GthEyeScan {
+  public:
+    GthEyeScan(Path);
+    bool enabled() const;
+    void enable (bool);
+    void scan   (const char* ofile,
+                 unsigned    prescale=0,
+                 unsigned    xscale=0,
+                 bool        lsparse=false);
+    void run    (unsigned&   error_count,
+                 uint64_t&   sample_count);
+    static void progress(unsigned& row,
+                         unsigned& col);
+  public:
+    Path _root;
   };
 
   class IpAddrFixup : public IYamlFixup {

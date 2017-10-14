@@ -13,6 +13,7 @@
 #include AxiSy56040.yaml
 #include TimingFrameRx.yaml
 #include GthRxAlignCheck.yaml
+#include GthEyeScan.yaml
 
 AmcCarrierCheckout: &AmcCarrierCheckout 
   name: AmcCarrierCheckout
@@ -42,3 +43,8 @@ AmcCarrierCheckout: &AmcCarrierCheckout
       <<: *GthRxAlignCheck
       at:
         offset: 0x08800000
+    ##################################################
+    GthEyeScan:
+      <<: *GthEyeScan
+      at:
+        offset: 0x08c00000

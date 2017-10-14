@@ -11,6 +11,7 @@
 
 using namespace Cphw;
 
+
 AxiVersion::AxiVersion(Path root) : _root(root) {}
 std::string AxiVersion::buildStamp() const
 {
@@ -228,6 +229,178 @@ void AmcTiming::measureClks() const
     double txs = n>1 ? sqrt((tx2-txm*tx1)/(n-1)) : 0;
     printf("%10.10s: mean %f  rms %f\n","1S dT(rx)", txm*1.e-6, txs*1.e-6);
   }
+}
+
+
+static int row_, column_;
+
+GthEyeScan::GthEyeScan(Path root) :
+  _root(root->findByName("GthEyeScan"))
+{
+}
+
+bool GthEyeScan::enabled() const
+{
+  unsigned v;
+  IScalVal_RO::create(_root->findByName("Enable"))->getVal(&v,1);
+  return v!=0;
+}
+
+void GthEyeScan::enable(bool v)
+{
+  unsigned u = v ? 1:0;
+  IScalVal::create(_root->findByName("Enable"))->setVal(&u,1);
+}
+
+void GthEyeScan::scan(const char* ofile, 
+                      unsigned    prescale, 
+                      unsigned    xscale,
+                      bool        lsparse)
+{
+  FILE* f = fopen(ofile,"w");
+
+  unsigned status;
+  unsigned zero(0), one(1);
+  IScalVal_RO::create(_root->findByName("ScanState"))->getVal(&status,1);
+  printf("eyescan status: %04x\n",status);
+  if (status != 0) {
+    printf("Forcing to WAIT state\n");
+    IScalVal::create(_root->findByName("Run"))->setVal(&zero,1);
+  }
+  while(1) {
+    sleep(1);
+    unsigned vdone, vstate;
+    IScalVal_RO::create(_root->findByName("ScanDone" ))->getVal(&vdone,1);
+    IScalVal_RO::create(_root->findByName("ScanState"))->getVal(&vstate,1);
+    printf("ScanState/Done = %u.%u\n",vstate,vdone);
+    if (vdone==1 && vstate==0)
+      break;
+  }
+  printf("WAIT state\n");
+
+  IScalVal::create(_root->findByName("ErrDetEn"))->setVal(&one,1);
+  IScalVal::create(_root->findByName("Prescale"))->setVal(&prescale,1);
+
+  unsigned sdata_mask[] = { 0xffff, 0xffff, 0xff00, 0x000f, 0xffff };
+  IScalVal::create(_root->findByName("SDataMask"))->setVal(sdata_mask,5);
+
+  unsigned qual_mask[] = { 0xffff, 0xffff, 0xffff, 0xffff, 0xffff };
+  IScalVal::create(_root->findByName("QualMask"))->setVal(qual_mask,5);
+
+  unsigned rang = 3;
+  IScalVal::create(_root->findByName("EsVsRange" ))->setVal(&rang,1);
+  IScalVal::create(_root->findByName("EsVsUtSign"))->setVal(&zero,1);
+  IScalVal::create(_root->findByName("EsVsNegDir"))->setVal(&zero,1);
+
+  ScalVal horzOffset = IScalVal::create(_root->findByName("HorzOffset"));
+  horzOffset->setVal(&zero,1);
+
+  char stime[200];
+
+  for(int j=-31; j<32; j++) {
+    row_ = j;
+
+    time_t t = time(NULL);
+    struct tm* tmp = localtime(&t);
+    if (tmp)
+      strftime(stime, sizeof(stime), "%T", tmp);
+
+    printf("es_horz_offset: %i [%s]\n",j, stime);
+    unsigned hoff = j<<xscale;
+    horzOffset->setVal(&hoff,1);
+
+    ScalVal code = IScalVal::create(_root->findByName("EsVsCode"));
+    code->setVal(&zero,1); // zero vert offset
+
+    uint64_t sample_count;
+    unsigned error_count=-1, error_count_p=-1;
+
+    for(int i=-1; i>=-127; i--) {
+      column_ = i;
+      code->setVal((unsigned*)&i,1); // vert offset
+      run(error_count,sample_count);
+      sample_count <<= (1 + prescale);
+
+      fprintf(f, "%d %d %u %llu\n",
+              j, i, 
+              error_count,
+              sample_count);
+                
+      // -> wait
+      IScalVal::create(_root->findByName("Run"))->setVal(&zero,1);
+
+      if (error_count==0 && error_count_p==0 && !lsparse) {
+        //          printf("\t%i\n",i);
+        break;
+      }
+
+      error_count_p=error_count;
+
+      if (lsparse)
+        i -= 19;
+    }
+    code->setVal(&zero,1); // zero vert offset
+    error_count_p = -1;
+    for(int i=127; i>=0; i--) {
+      column_ = i;
+      code->setVal((unsigned*)&i,1); // vert offset
+      run(error_count,sample_count);
+      sample_count <<= (1 + prescale);
+
+      fprintf(f, "%d %d %u %llu\n",
+              j, i, 
+              error_count,
+              sample_count);
+                
+      // -> wait
+      IScalVal::create(_root->findByName("Run"))->setVal(&zero,1);
+
+      if (error_count==0 && error_count_p==0 && !lsparse) {
+        //          printf("\t%i\n",i);
+        break;
+      }
+
+      error_count_p=error_count;
+
+      if (lsparse)
+        i -= 19;
+    }
+    if (lsparse)
+      j += 3;
+  }
+  fclose(f);
+}
+
+void GthEyeScan::run(unsigned& error_count,
+                     uint64_t& sample_count)
+{
+  unsigned zero(0), one(1);
+
+  // -> wait
+  IScalVal::create(_root->findByName("Run"))->setVal(&one,1);
+  ScalVal_RO done = IScalVal_RO::create(_root->findByName("ScanDone"));
+  unsigned vdone;
+  while(1) {
+    unsigned nwait=0;
+    do {
+      usleep(100);
+      nwait++;
+      done->getVal(&vdone,1);
+    } while(vdone==0 and nwait < 1000);
+    unsigned vstate;
+    IScalVal_RO::create(_root->findByName("ScanState"))->getVal(&vstate,1);
+    if (vstate==2)
+      break;
+  }
+  IScalVal_RO::create(_root->findByName("ErrorCount"))->getVal(&error_count,1);
+  IScalVal_RO::create(_root->findByName("SampleCount"))->getVal(&sample_count,1);
+}            
+
+void GthEyeScan::progress(unsigned& row,
+                          unsigned& col)
+{
+  row = row_;
+  col = column_;
 }
 
 void IpAddrFixup::operator()(YAML::Node& node)
