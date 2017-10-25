@@ -1,3 +1,9 @@
+R1.2.6      10/25/2017    Kukhee Kim (KHKIM)
+            let epics creates the irq polling thread with RT priority
+            put a bandage to ignore BSA complete irq and let epics handles the BSA complete and Ack
+            Added timing eyescan app (Matt Weaver)
+
+
 R1.2.5      09/27/2017    Matt Weaver (WEAVER)
             fix irq thread to ack BSA irq even if not handled
             added to dump() print out
