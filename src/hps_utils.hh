@@ -90,7 +90,7 @@ namespace Cphw {
                  unsigned    xscale=0,
                  bool        lsparse=false);
     void run    (unsigned&   error_count,
-                 uint64_t&   sample_count);
+                 unsigned&   sample_count);
     static void progress(unsigned& row,
                          unsigned& col);
   public:

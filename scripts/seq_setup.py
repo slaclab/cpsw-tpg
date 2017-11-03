@@ -67,6 +67,13 @@ class MySequencer:
         self.reset .put(0)
 
 if __name__ == '__main__':
+#
+# Setup a sequence that will assert:
+#   bit 0 at 929kHz/divisor
+#   bit 1 at 929kHz/divisor/2
+#   bit 2 at 929kHz/divisor/4
+#   bit 3 at 929kHz/divisor/8
+#
 
     parser = argparse.ArgumentParser(description='simple exp seq setup')
     parser.add_argument('--pv' , help="TPG pv base", default='TPG:SYS2:1')

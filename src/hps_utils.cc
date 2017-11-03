@@ -48,28 +48,28 @@ RingBuffer::RingBuffer(Path root) :
 void RingBuffer::enable(bool v)
 {
   unsigned r;
-  _csr->getVal(&r,1);
+  _csr->getVal(&r);
   if (v)
     r |= (1<<31);
   else
     r &= ~(1<<31);
-  _csr->setVal(&r,1);
+  _csr->setVal(&r);
 }
 
 void RingBuffer::clear()
 {
   unsigned r;
-  _csr->getVal(&r,1);
+  _csr->getVal(&r);
   r |= (1<<30);
-  _csr->setVal(&r,1);
+  _csr->setVal(&r);
   r &= ~(1<<30);
-  _csr->setVal(&r,1);
+  _csr->setVal(&r);
 }
 
 void RingBuffer::dump()
 {
   unsigned len;
-  _csr->getVal(&len,1);
+  _csr->getVal(&len);
   len &= 0xfffff;
   uint32_t* buff = new uint32_t[len];
   _dump->getVal(buff,len);
@@ -134,7 +134,7 @@ TimingStats AmcTiming::getStats() const
 {
   TimingStats s;
 
-#define PR(r,u) { IScalVal_RO::create(_timingRx->findByName(#r))->getVal(&u,1); }
+#define PR(r,u) { IScalVal_RO::create(_timingRx->findByName(#r))->getVal(&u); }
   
   PR(RxClkCount   ,s.rxclks);
   PR(TxClkCount   ,s.txclks);
@@ -151,7 +151,7 @@ TimingStats AmcTiming::getStats() const
 void AmcTiming::dumpStats() const
 {
 #define PR(r) { unsigned u;                                     \
-    IScalVal_RO::create(_timingRx->findByName(#r))->getVal(&u,1);   \
+    IScalVal_RO::create(_timingRx->findByName(#r))->getVal(&u);   \
     printf("%10.10s: 0x%x\n",#r,u); }
   
   PR(sofCount);
@@ -174,20 +174,20 @@ void AmcTiming::dumpStats() const
 
 void AmcTiming::setRxAlignTarget(unsigned t)
 {
-  IScalVal::create(_alignRx->findByName("PhaseTarget"))->setVal(&t,1);
+  IScalVal::create(_alignRx->findByName("PhaseTarget"))->setVal(&t);
 }
 
 void AmcTiming::setRxResetLength(unsigned len)
 {
-  IScalVal::create(_alignRx->findByName("ResetLen"))->setVal(&len,1);
+  IScalVal::create(_alignRx->findByName("ResetLen"))->setVal(&len);
 }
 
 void AmcTiming::dumpRxAlign     () const
 {
   unsigned tgt,last,rlen;
-  IScalVal_RO::create(_alignRx->findByName("PhaseTarget"))->getVal(&tgt,1);
-  IScalVal_RO::create(_alignRx->findByName("LastPhase"))  ->getVal(&last,1);
-  IScalVal_RO::create(_alignRx->findByName("ResetLen"))   ->getVal(&rlen,1);
+  IScalVal_RO::create(_alignRx->findByName("PhaseTarget"))->getVal(&tgt);
+  IScalVal_RO::create(_alignRx->findByName("LastPhase"))  ->getVal(&last);
+  IScalVal_RO::create(_alignRx->findByName("ResetLen"))   ->getVal(&rlen);
   printf("\nTarget: %u\tRstLen: %u\tLast: %u\n",
          tgt, rlen, last);
 
@@ -208,13 +208,13 @@ void AmcTiming::measureClks() const
 
   while(1) {
     unsigned rxT0, txT0;
-    IScalVal_RO::create(_timingRx->findByName("RxClkCount"))->getVal(&rxT0,1);
-    IScalVal_RO::create(_timingRx->findByName("TxClkCount"))->getVal(&txT0,1);
+    IScalVal_RO::create(_timingRx->findByName("RxClkCount"))->getVal(&rxT0);
+    IScalVal_RO::create(_timingRx->findByName("TxClkCount"))->getVal(&txT0);
     usleep(1000000);
 
     unsigned rxT1, txT1;
-    IScalVal_RO::create(_timingRx->findByName("RxClkCount"))->getVal(&rxT1,1);
-    IScalVal_RO::create(_timingRx->findByName("TxClkCount"))->getVal(&txT1,1);
+    IScalVal_RO::create(_timingRx->findByName("RxClkCount"))->getVal(&rxT1);
+    IScalVal_RO::create(_timingRx->findByName("TxClkCount"))->getVal(&txT1);
     double dRxT = double((rxT1 - rxT0) << 4);
     double dTxT = double((txT1 - txT0) << 4);
 
@@ -242,14 +242,14 @@ GthEyeScan::GthEyeScan(Path root) :
 bool GthEyeScan::enabled() const
 {
   unsigned v;
-  IScalVal_RO::create(_root->findByName("Enable"))->getVal(&v,1);
+  IScalVal_RO::create(_root->findByName("Enable"))->getVal(&v);
   return v!=0;
 }
 
 void GthEyeScan::enable(bool v)
 {
   unsigned u = v ? 1:0;
-  IScalVal::create(_root->findByName("Enable"))->setVal(&u,1);
+  IScalVal::create(_root->findByName("Enable"))->setVal(&u);
 }
 
 void GthEyeScan::scan(const char* ofile, 
@@ -261,25 +261,39 @@ void GthEyeScan::scan(const char* ofile,
 
   unsigned status;
   unsigned zero(0), one(1);
-  IScalVal_RO::create(_root->findByName("ScanState"))->getVal(&status,1);
+  IScalVal_RO::create(_root->findByName("ScanState"))->getVal(&status);
   printf("eyescan status: %04x\n",status);
   if (status != 0) {
     printf("Forcing to WAIT state\n");
-    IScalVal::create(_root->findByName("Run"))->setVal(&zero,1);
+    IScalVal::create(_root->findByName("Run"))->setVal(&zero);
   }
   while(1) {
     sleep(1);
     unsigned vdone, vstate;
-    IScalVal_RO::create(_root->findByName("ScanDone" ))->getVal(&vdone,1);
-    IScalVal_RO::create(_root->findByName("ScanState"))->getVal(&vstate,1);
+    IScalVal_RO::create(_root->findByName("ScanDone" ))->getVal(&vdone);
+    IScalVal_RO::create(_root->findByName("ScanState"))->getVal(&vstate);
     printf("ScanState/Done = %u.%u\n",vstate,vdone);
     if (vdone==1 && vstate==0)
       break;
   }
   printf("WAIT state\n");
 
-  IScalVal::create(_root->findByName("ErrDetEn"))->setVal(&one,1);
-  IScalVal::create(_root->findByName("Prescale"))->setVal(&prescale,1);
+  IScalVal::create(_root->findByName("ErrDetEn"))->setVal(&one);
+  IScalVal::create(_root->findByName("Prescale"))->setVal(&prescale);
+
+  IScalVal_RO::create(_root->findByName("ErrDetEn"))->getVal(&status);
+  printf("ErrDet %u\n",status);
+
+  IScalVal_RO::create(_root->findByName("Prescale"))->getVal(&status);
+  printf("Prescale %u\n",status);
+
+  for(unsigned i=0; i<5; i++) {
+    IndexRange range(i);
+    unsigned data,qual;
+    IScalVal_RO::create(_root->findByName("SDataMask"))->getVal(&data,1,&range);
+    IScalVal_RO::create(_root->findByName("QualMask" ))->getVal(&qual,1,&range);
+    printf("data,qual [%u] : %x %x\n", i, data, qual);
+  }
 
   unsigned sdata_mask[] = { 0xffff, 0xffff, 0xff00, 0x000f, 0xffff };
   IScalVal::create(_root->findByName("SDataMask"))->setVal(sdata_mask,5);
@@ -287,13 +301,21 @@ void GthEyeScan::scan(const char* ofile,
   unsigned qual_mask[] = { 0xffff, 0xffff, 0xffff, 0xffff, 0xffff };
   IScalVal::create(_root->findByName("QualMask"))->setVal(qual_mask,5);
 
+  for(unsigned i=0; i<5; i++) {
+    IndexRange range(i);
+    unsigned data,qual;
+    IScalVal_RO::create(_root->findByName("SDataMask"))->getVal(&data,1,&range);
+    IScalVal_RO::create(_root->findByName("QualMask" ))->getVal(&qual,1,&range);
+    printf("data,qual [%u] : %x %x\n", i, data, qual);
+  }
+
   unsigned rang = 3;
-  IScalVal::create(_root->findByName("EsVsRange" ))->setVal(&rang,1);
-  IScalVal::create(_root->findByName("EsVsUtSign"))->setVal(&zero,1);
-  IScalVal::create(_root->findByName("EsVsNegDir"))->setVal(&zero,1);
+  IScalVal::create(_root->findByName("EsVsRange" ))->setVal(&rang);
+  IScalVal::create(_root->findByName("EsVsUtSign"))->setVal(&zero);
+  IScalVal::create(_root->findByName("EsVsNegDir"))->setVal(&zero);
 
   ScalVal horzOffset = IScalVal::create(_root->findByName("HorzOffset"));
-  horzOffset->setVal(&zero,1);
+  horzOffset->setVal(&zero);
 
   char stime[200];
 
@@ -305,29 +327,30 @@ void GthEyeScan::scan(const char* ofile,
     if (tmp)
       strftime(stime, sizeof(stime), "%T", tmp);
 
-    printf("es_horz_offset: %i [%s]\n",j, stime);
     unsigned hoff = j<<xscale;
-    horzOffset->setVal(&hoff,1);
+    horzOffset->setVal(&hoff);
+    horzOffset->getVal(&status);
+    printf("es_horz_offset: %i [%s] (%x)\n",j, stime, status);
 
-    ScalVal code = IScalVal::create(_root->findByName("EsVsCode"));
-    code->setVal(&zero,1); // zero vert offset
+    ScalVal code = IScalVal::create(_root->findByName("VertOffset"));
+    code->setVal(&zero); // zero vert offset
 
-    uint64_t sample_count;
     unsigned error_count=-1, error_count_p=-1;
 
     for(int i=-1; i>=-127; i--) {
       column_ = i;
-      code->setVal((unsigned*)&i,1); // vert offset
+      code->setVal((unsigned*)&i); // vert offset
+      unsigned sample_count;
       run(error_count,sample_count);
-      sample_count <<= (1 + prescale);
+      uint64_t sample_count64 = uint64_t(sample_count) << (1 + prescale);
 
       fprintf(f, "%d %d %u %llu\n",
               j, i, 
               error_count,
-              sample_count);
+              sample_count64);
                 
       // -> wait
-      IScalVal::create(_root->findByName("Run"))->setVal(&zero,1);
+      IScalVal::create(_root->findByName("Run"))->setVal(&zero);
 
       if (error_count==0 && error_count_p==0 && !lsparse) {
         //          printf("\t%i\n",i);
@@ -339,21 +362,22 @@ void GthEyeScan::scan(const char* ofile,
       if (lsparse)
         i -= 19;
     }
-    code->setVal(&zero,1); // zero vert offset
+    code->setVal(&zero); // zero vert offset
     error_count_p = -1;
     for(int i=127; i>=0; i--) {
       column_ = i;
-      code->setVal((unsigned*)&i,1); // vert offset
+      code->setVal((unsigned*)&i); // vert offset
+      unsigned sample_count;
       run(error_count,sample_count);
-      sample_count <<= (1 + prescale);
+      uint64_t sample_count64 = uint64_t(sample_count) << (1 + prescale);
 
       fprintf(f, "%d %d %u %llu\n",
               j, i, 
               error_count,
-              sample_count);
+              sample_count64);
                 
       // -> wait
-      IScalVal::create(_root->findByName("Run"))->setVal(&zero,1);
+      IScalVal::create(_root->findByName("Run"))->setVal(&zero);
 
       if (error_count==0 && error_count_p==0 && !lsparse) {
         //          printf("\t%i\n",i);
@@ -372,28 +396,28 @@ void GthEyeScan::scan(const char* ofile,
 }
 
 void GthEyeScan::run(unsigned& error_count,
-                     uint64_t& sample_count)
+                     unsigned& sample_count)
 {
   unsigned zero(0), one(1);
 
   // -> wait
-  IScalVal::create(_root->findByName("Run"))->setVal(&one,1);
+  IScalVal::create(_root->findByName("Run"))->setVal(&one);
   ScalVal_RO done = IScalVal_RO::create(_root->findByName("ScanDone"));
   unsigned vdone;
+  unsigned nwait=0;
   while(1) {
-    unsigned nwait=0;
     do {
       usleep(100);
       nwait++;
-      done->getVal(&vdone,1);
+      done->getVal(&vdone);
     } while(vdone==0 and nwait < 1000);
     unsigned vstate;
-    IScalVal_RO::create(_root->findByName("ScanState"))->getVal(&vstate,1);
+    IScalVal_RO::create(_root->findByName("ScanState"))->getVal(&vstate);
     if (vstate==2)
       break;
   }
-  IScalVal_RO::create(_root->findByName("ErrorCount"))->getVal(&error_count,1);
-  IScalVal_RO::create(_root->findByName("SampleCount"))->getVal(&sample_count,1);
+  IScalVal_RO::create(_root->findByName("ErrorCount"))->getVal(&error_count);
+  IScalVal_RO::create(_root->findByName("SampleCount"))->getVal(&sample_count);
 }            
 
 void GthEyeScan::progress(unsigned& row,

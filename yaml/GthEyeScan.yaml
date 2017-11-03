@@ -60,7 +60,7 @@ GthEyeScan: &GthEyeScan
     Qualifier:
       at:
         offset: 0x00fc
-        stride: 32
+        stride: 4
         nelms : 5
       class: IntField
       name: Qualifier
@@ -72,11 +72,11 @@ GthEyeScan: &GthEyeScan
     QualMask:
       at:
         offset: 0x0110
-        stride: 32
+        stride: 4
         nelms : 5
       class: IntField
       name: QualMask
-      sizeBits: 16
+      sizeBits: 32
       lsBit: 0
       mode: RW
       description: Error detect qualifier mask
@@ -84,14 +84,14 @@ GthEyeScan: &GthEyeScan
     SDataMask:
       at:
         offset: 0x0124
-        stride: 32
+        stride: 4
         nelms : 5
       class: IntField
       name: SDataMask
-      sizeBits: 16
+      sizeBits: 32
       lsBit: 0
       mode: RW
-      description: Error detect qualifier mask
+      description: Error detect pattern data
     #########################################################
     HorzOffset:
       at:
@@ -112,6 +112,16 @@ GthEyeScan: &GthEyeScan
       lsBit: 0
       mode: RW
       description: Range
+    #########################################################
+    VertOffset:
+      at:
+        offset: 0x25c
+      class: IntField
+      name: VertOffset
+      sizeBits: 9
+      lsBit: 2
+      mode: RW
+      description: Vertical offset
     #########################################################
     EsVsCode:
       at:

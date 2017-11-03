@@ -123,10 +123,16 @@ int main(int argc, char* argv[])
   //
   //  Configure the XBAR (RTM for slot 2 and BP for all others)
   //
-  if (strcmp(strrchr(ip,'.')+1,"102")==0)
-    t->xbar().setOut( XBar::FPGA, XBar::RTM0 );
-  else
-    t->xbar().setOut( XBar::FPGA, XBar::BP );
+  if (lXbar) {
+    t->xbar().setOut( XBar::FPGA, vXbar );
+  }
+  else {
+    if (strcmp(strrchr(ip,'.')+1,"102")==0)
+      t->xbar().setOut( XBar::FPGA, XBar::RTM0 );
+    else
+      t->xbar().setOut( XBar::FPGA, XBar::BP );
+  }
+  t->xbar().dump();
 
   //
   //  Reset link with LCLS-II Timing
@@ -158,6 +164,8 @@ int main(int argc, char* argv[])
          txClkFreq,
          (txClkFreq > ClkMin[ilcls] &&
           txClkFreq < ClkMax[ilcls]) ? "PASS":"FAIL");
+  printf("Link        : %s     %s\n",
+         s1.linkup ? "Up  " : "Down", s1.linkup ? "PASS":"FAIL");
   double sofCnts = double(s1.sof-s0.sof) / dt;
   printf("SOFcounts   : %7.0f  %s\n",
          sofCnts,

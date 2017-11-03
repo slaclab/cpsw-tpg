@@ -62,3 +62,16 @@ NetIODev:
          TDESTMux:
            TDEST: 4
 
+NetIOUDP:
+  ipAddr: 10.0.3.102
+  class: NetIODev
+  configPrio: 1
+  children:
+     mmio:
+       <<: *mmio
+       at:
+         SRP:
+           protocolVersion: SRP_UDP_V3
+         UDP:
+           port: 8192
+         RSSI: no
