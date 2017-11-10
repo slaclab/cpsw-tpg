@@ -49,6 +49,7 @@ namespace Cphw {
     unsigned txclks;
     unsigned sof;
     unsigned linkup;
+    unsigned polarity;
     unsigned crc;
     unsigned dsp;
     unsigned dec;

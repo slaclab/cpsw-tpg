@@ -1,0 +1,50 @@
+##############################################################################
+## This file is part of 'LCLS2 Common Carrier Core'.
+## It is subject to the license terms in the LICENSE.txt file found in the 
+## top-level directory of this distribution and at: 
+##    https://confluence.slac.stanford.edu/display/ppareg/LICENSE.html. 
+## No part of 'LCLS2 Common Carrier Core', including this file, 
+## may be copied, modified, propagated, or distributed except according to 
+## the terms contained in the LICENSE.txt file.
+##############################################################################
+#schemaversion 3.0.0
+#once AmcCarrierCheckout.yaml
+#include AxiVersion.yaml
+#include AxiSy56040.yaml
+#include TimingFrameRx.yaml
+#include GthRxAlignCheck.yaml
+#include GthEyeScan.yaml
+
+AmcCarrierCheckout: &AmcCarrierCheckout 
+  name: AmcCarrierCheckout
+  class: MMIODev
+  configPrio: 1
+  description: Timing receiver module for AMC Carrier
+  size: 0x80000000
+  ############
+  children:
+  ############
+    AxiVersion:
+      <<: *AxiVersion
+      at:
+        offset: 0x00000000
+    ##################################################
+    AxiSy56040:
+      <<: *AxiSy56040
+      at:
+        offset: 0x03000000      
+    ##################################################
+    TimingFrameRx:
+      <<: *TimingFrameRx
+      at:
+        offset: 0x08000000
+    ##################################################
+    GthRxAlignCheck:
+      <<: *GthRxAlignCheck
+      at:
+        offset: 0x08800000
+    ##################################################
+    GthEyeScan:
+      <<: *GthEyeScan
+      at:
+        offset: 0x08c00000

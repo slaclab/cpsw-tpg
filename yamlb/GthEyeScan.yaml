@@ -1,0 +1,194 @@
+##############################################################################
+## This file is part of 'SLAC Firmware Standard Library'.
+## It is subject to the license terms in the LICENSE.txt file found in the 
+## top-level directory of this distribution and at: 
+##    https://confluence.slac.stanford.edu/display/ppareg/LICENSE.html. 
+## No part of 'SLAC Firmware Standard Library', including this file, 
+## may be copied, modified, propagated, or distributed except according to 
+## the terms contained in the LICENSE.txt file.
+##############################################################################
+#schemaversion 3.0.0
+#once GthEyeScan.yaml
+
+GthEyeScan: &GthEyeScan
+  class: MMIODev
+  configPrio: 1
+  description: Timing GTH DRP
+  size: 0x10000
+  children:
+    #########################################################
+    Prescale:
+      at:
+        offset: 0x00f0
+      class: IntField
+      name: Prescale
+      sizeBits: 5
+      lsBit: 0
+      mode: RW
+      description: Prescale
+    #########################################################
+    Enable:
+      at:
+        offset: 0x00f1
+      class: IntField
+      name: Enable
+      sizeBits: 1
+      lsBit: 0
+      mode: RW
+      description: Eyescan enable
+    #########################################################
+    ErrDetEn:
+      at:
+        offset: 0x00f1
+      class: IntField
+      name: ErrDetEn
+      sizeBits: 1
+      lsBit: 1
+      mode: RW
+      description: Error detect enable
+    #########################################################
+    Run:
+      at:
+        offset: 0x00f1
+      class: IntField
+      name: Control
+      sizeBits: 1
+      lsBit: 2
+      mode: RW
+      description: Run measurement sequence
+    #########################################################
+    Qualifier:
+      at:
+        offset: 0x00fc
+        stride: 4
+        nelms : 5
+      class: IntField
+      name: Qualifier
+      sizeBits: 16
+      lsBit: 0
+      mode: RW
+      description: Error detect qualifier pattern
+    #########################################################
+    QualMask:
+      at:
+        offset: 0x0110
+        stride: 4
+        nelms : 5
+      class: IntField
+      name: QualMask
+      sizeBits: 32
+      lsBit: 0
+      mode: RW
+      description: Error detect qualifier mask
+    #########################################################
+    SDataMask:
+      at:
+        offset: 0x0124
+        stride: 4
+        nelms : 5
+      class: IntField
+      name: SDataMask
+      sizeBits: 32
+      lsBit: 0
+      mode: RW
+      description: Error detect pattern data
+    #########################################################
+    HorzOffset:
+      at:
+        offset: 0x013c
+      class: IntField
+      name: HorzOffset
+      sizeBits: 12
+      lsBit: 4
+      mode: RW
+      description: Horizontal offset
+    #########################################################
+    EsVsRange:
+      at:
+        offset: 0x25c
+      class: IntField
+      name: EsVsRange
+      sizeBits: 2
+      lsBit: 0
+      mode: RW
+      description: Range
+    #########################################################
+    VertOffset:
+      at:
+        offset: 0x25c
+      class: IntField
+      name: VertOffset
+      sizeBits: 9
+      lsBit: 2
+      mode: RW
+      description: Vertical offset
+    #########################################################
+    EsVsCode:
+      at:
+        offset: 0x25c
+      class: IntField
+      name: EsVsCode
+      sizeBits: 7
+      lsBit: 2
+      mode: RW
+      description: Vertical offset
+    #########################################################
+    EsVsUtSign:
+      at:
+        offset: 0x25d
+      class: IntField
+      name: EsVsUtSign
+      sizeBits: 1
+      lsBit: 1
+      mode: RW
+      description: UT Sign
+    #########################################################
+    EsVsNegDir:
+      at:
+        offset: 0x25d
+      class: IntField
+      name: EsVsNegDir
+      sizeBits: 1
+      lsBit: 2
+      mode: RW
+      description: Neg Dir
+    #########################################################
+    ErrorCount:
+      at:
+        offset: 0x544
+      class: IntField
+      name: ErrorCount
+      sizeBits: 16
+      lsBit: 0
+      mode: RO
+      description: Error count
+    #########################################################
+    SampleCount:
+      at:
+        offset: 0x548
+      class: IntField
+      name: SampleCount
+      sizeBits: 16
+      lsBit: 0
+      mode: RO
+      description: Sample count
+    #########################################################
+    ScanDone:
+      at:
+        offset: 0x54c
+      class: IntField
+      name: ScanDone
+      sizeBits: 1
+      lsBit: 0
+      mode: RO
+      description: Scan done
+    #########################################################
+    ScanState:
+      at:
+        offset: 0x54c
+      class: IntField
+      name: ScanState
+      sizeBits: 3
+      lsBit: 1
+      mode: RO
+      description: Scan state

@@ -140,6 +140,7 @@ TimingStats AmcTiming::getStats() const
   PR(TxClkCount   ,s.txclks);
   PR(sofCount     ,s.sof);
   PR(RxLinkUp     ,s.linkup);
+  PR(RxPolarity   ,s.polarity);
   PR(CrcErrCount  ,s.crc);
   PR(RxDspErrCount,s.dsp);
   PR(RxDspErrCount,s.dec);

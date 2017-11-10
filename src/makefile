@@ -88,6 +88,10 @@ hps_checkout_SRCS = hps_checkout.cc
 hps_checkout_LIBS = $(CPSW_LIBS) hps pthread rt dl
 PROGRAMS    += hps_checkout
 
+hps_peek_SRCS = hps_peek.cc
+hps_peek_LIBS = $(CPSW_LIBS) hps pthread rt dl
+PROGRAMS    += hps_peek
+
 hps_eyescan_SRCS = hps_eyescan.cc
 hps_eyescan_LIBS = $(CPSW_LIBS) hps pthread rt dl
 PROGRAMS    += hps_eyescan
