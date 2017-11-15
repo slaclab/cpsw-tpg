@@ -1,3 +1,10 @@
+R1.2.7      11/15/2017    Matt Weaver
+            Add sample user sequencing scripts
+            Add hps_peek for examining timing
+            Add yamlb for backdoor access (port 8192)
+            Add scripts for control sequence setup
+            Add timing margin analysis to generic hps tools
+
 R1.2.6      10/25/2017    Kukhee Kim (KHKIM)
             let epics creates the irq polling thread with RT priority
             put a bandage to ignore BSA complete irq and let epics handles the BSA complete and Ack
