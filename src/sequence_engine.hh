@@ -13,6 +13,14 @@
 namespace TPGen {
   class Instruction;
 
+  class InstructionCache {
+  public:
+    int      index;
+    unsigned ram_address;
+    unsigned ram_size;
+    std::vector<Instruction*> instructions;
+  };
+
   class SequenceEngine {
   public:
     virtual ~SequenceEngine() {}
@@ -63,6 +71,12 @@ namespace TPGen {
     //  Note that the MPSJump table (see above) must already be filled for the 'mps' entry.
     //
     virtual void setMPSState   (int mps, unsigned sync=1)= 0;
+
+    //
+    //  Return RAM statistics on each instruction set
+    //
+    virtual InstructionCache              cache(unsigned index) const= 0;
+    virtual std::vector<InstructionCache> cache() const= 0;
 
     virtual void dumpSequence  (int seq) const= 0;
     virtual void dump          ()        const= 0;

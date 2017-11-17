@@ -25,6 +25,8 @@ namespace TPGen {
  public:
     void      handle            (unsigned address);
   public:
+    InstructionCache              cache(unsigned index) const;
+    std::vector<InstructionCache> cache() const;
     void dumpSequence  (int seq) const;
     void dump          ()        const;
   public:

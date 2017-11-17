@@ -4,6 +4,7 @@
  
 #include <climits>
 #include <map>
+#include <stdexcept>
 #include <stdio.h>
 
 namespace TPGen {
@@ -464,3 +465,33 @@ void SequenceEngineYaml::dump() const
 void SequenceEngineYaml::verbosity(unsigned v)
 { _verbose=v; }
 
+InstructionCache SequenceEngineYaml::cache(unsigned index) const
+{
+  for(std::map<unsigned,SeqCache>::iterator it=_private->_caches.begin();
+      it!=_private->_caches.end(); it++) {
+    if (it->second.index == index) {
+      InstructionCache c;
+      c.index        = it->second.index;
+      c.ram_address  = it->first;
+      c.ram_size     = it->second.size;
+      c.instructions = it->second.instr;
+      break;
+    }
+  }
+  throw std::invalid_argument("index not found");
+}
+
+std::vector<InstructionCache> SequenceEngineYaml::cache() const
+{
+  std::vector<InstructionCache> rval;
+  for(std::map<unsigned,SeqCache>::iterator it=_private->_caches.begin();
+      it!=_private->_caches.end(); it++) {
+    InstructionCache c;
+    c.index        = it->second.index;
+    c.ram_address  = it->first;
+    c.ram_size     = it->second.size;
+    c.instructions = it->second.instr;
+    rval.push_back(c);
+  }
+  return rval;
+}
