@@ -1,70 +1,5 @@
 from evtsel import *
-from seq_ca_new import *
-
-class MySequencer:
-    def __init__(self, base, index):
-        prefix = Prefix+':'+base+'%02d'%index
-        self.index   = index
-        self.ninstr  = Pv.Pv(prefix+':INSTRCNT')
-        self.desc    = Pv.Pv(prefix+':DESCINSTRS')
-        self.instr   = Pv.Pv(prefix+':INSTRS')
-        self.idxseq  = Pv.Pv(prefix+':SEQ00IDX')
-        self.seqname = Pv.Pv(prefix+':SEQ00DESC')
-        self.idxseqr = Pv.Pv(prefix+':RMVIDX')
-        self.seqr    = Pv.Pv(prefix+':RMVSEQ')
-        self.insert  = Pv.Pv(prefix+':INS')
-        self.idxrun  = Pv.Pv(prefix+':RUNIDX')
-        self.start   = Pv.Pv(prefix+':SCHEDRESET')
-        self.reset   = Pv.Pv(prefix+':FORCERESET')
-
-    def execute(self, title, instrset):
-        self.insert.put(0)
-
-        # Remove existing sub sequences
-        ridx = -1
-        print 'Remove %d'%ridx
-        if ridx < 0:
-            idx = self.idxseq.get()
-            while (idx>0):
-                print 'Removing seq %d'%idx
-                self.idxseqr.put(idx)
-                self.seqr.put(1)
-                self.seqr.put(0)
-                idx = self.idxseq.get()
-        elif ridx > 1:
-            print 'Removing seq %d'%ridx
-            self.idxseqr.put(ridx)
-            self.seqr.put(1)
-            self.seqr.put(0)
-
-        self.desc.put(title)
-
-        encoding = [i]
-        for instr in instrset:
-            encoding = encoding + instr.encoding()
-
-        print encoding
-
-        self.instr.put( tuple(encoding) )
-
-        time.sleep(0.1)
-
-        ninstr = self.ninstr.get()
-        print 'Confirmed ninstr %d'%ninstr
-
-        self.insert.put(1)
-
-        #  Get the assigned sequence num
-        idx = self.idxseq.get()
-        print 'Sequence '+self.seqname.get()+' found at index %d'%idx
-
-        #  self.post(idx,title,ninstr)
-
-        #  Start it
-        self.idxrun.put(idx)
-        self.start .put(0)
-        self.reset .put(1)
-        self.reset .put(0)
+from sequser import *
 
 if __name__ == '__main__':
 
@@ -101,6 +36,6 @@ if __name__ == '__main__':
 
     title = 'LoopTest'
 
-    seq = MySequencer('EXP',args.seq)
+    seq = SeqUser(args.pv+':EXP',args.seq)
 
     seq.execute(title,instrset)
