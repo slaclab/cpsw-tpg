@@ -475,10 +475,14 @@ InstructionCache SequenceEngineYaml::cache(unsigned index) const
       c.ram_address  = it->first;
       c.ram_size     = it->second.size;
       c.instructions = it->second.instr;
+      return c;
       break;
     }
   }
-  throw std::invalid_argument("index not found");
+  //  throw std::invalid_argument("index not found");
+  InstructionCache c;
+  c.index        = -1;
+  return c;
 }
 
 std::vector<InstructionCache> SequenceEngineYaml::cache() const
