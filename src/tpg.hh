@@ -224,6 +224,13 @@ namespace TPGen {
     virtual void     getMpsState     (unsigned  destination, 
                                       unsigned& latch, 
                                       unsigned& state) = 0;
+
+    virtual void     getMpsCommDiag (unsigned& rxRdy,
+                                     unsigned& txRdy,
+                                     unsigned& locLnkRdy,
+                                     unsigned& remLnkRdy,
+                                     unsigned& rxClkFreq,
+                                     unsigned& txClkFreq) = 0;
  
     //
     //  Asynchronous notification.

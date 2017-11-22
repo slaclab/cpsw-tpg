@@ -585,6 +585,22 @@ namespace TPGen {
     state = (a>>4)&0xf;
   }
 
+  void     TPGYaml::getMpsCommDiag    (unsigned& rxRdy,
+                                       unsigned& txRdy,
+                                       unsigned& locLnkRdy,
+                                       unsigned& remLnkRdy,
+                                       unsigned& rxClkFreq,
+                                       unsigned& txClkFreq)
+  {
+      Path _path = _private->root->findByName("mmio/AmcCarrierTimingGenerator/ApplicationCore/TPGMps/Pgp2bAxi/");
+      IScalVal_RO::create(_path->findByName("PhyReadyRx"))->getVal(&rxRdy,1);
+      IScalVal_RO::create(_path->findByName("PhyReadyTx"))->getVal(&txRdy,1);
+      IScalVal_RO::create(_path->findByName("LocalLinkReady"))->getVal(&locLnkRdy,1);
+      IScalVal_RO::create(_path->findByName("RemoteLinkReady"))->getVal(&remLnkRdy,1);
+      IScalVal_RO::create(_path->findByName("RxClockFreq"))->getVal(&rxClkFreq,1);
+      IScalVal_RO::create(_path->findByName("TxClockFreq"))->getVal(&txClkFreq,1);
+  }
+
   Callback* TPGYaml::subscribeBSA     (unsigned bsaArray,
 					  Callback* cb)
   { Callback* v = _private->bsaCallback[bsaArray];

@@ -99,6 +99,13 @@ namespace TPGen {
                               unsigned& latch, 
                               unsigned& state);
 
+    void     getMpsCommDiag  (unsigned& rxRdy,
+                              unsigned& txRdy,
+                              unsigned& locLnkRdy,
+                              unsigned& remLnkRdy,
+                              unsigned& rxClkFreq,
+                              unsigned& txClkFreq);
+
     //  Power line sampling ADC
     void     initADC         ();
 
