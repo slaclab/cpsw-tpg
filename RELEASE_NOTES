@@ -1,3 +1,9 @@
+R1.2.8      11/27/2017    Kukhee Kim / Matt Weaver
+            Add mps link/communication diagnostics API
+            Fix return value for sequence_engine::cache(int); remove exception
+            Make common sequser.py python import
+            Added instruction cache query methods
+
 R1.2.7      11/15/2017    Matt Weaver
             Add sample user sequencing scripts
             Add hps_peek for examining timing
