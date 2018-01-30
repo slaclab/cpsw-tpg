@@ -26,7 +26,6 @@ void usage(const char* p) {
   printf("         -t <value> Set timingMode/clkSel\n");
   printf("         -P <value> set polarity\n");
   printf("         -X <output>,<value> set xbar output\n");
-  printf("         -x ignore crossbar\n");
   printf("         -r reset FPGA\n");
   printf("         -R reload FPGA\n");
 }
@@ -47,11 +46,10 @@ int main(int argc, char* argv[])
   int xbar_o =-1, xbar_v = -1;
   int timingMode = -1;
   const char* endptr;
-  bool ignoreXbar=false;
   bool lreset = false;
   bool lreload = false;
 
-  while ( (c=getopt( argc, argv, "a:dDP:X:hsS:t:y:xrR")) != EOF ) {
+  while ( (c=getopt( argc, argv, "a:dDP:X:hsS:t:y:rR")) != EOF ) {
     switch(c) {
     case 'a':
       ip = optarg;
@@ -69,6 +67,9 @@ int main(int argc, char* argv[])
     case 'S':
       dumpStats = true;
       dumpStatsSecs = strtoul(optarg,NULL,0);
+      break;
+    case 't':
+      timingMode = strtoul(optarg,NULL,0);
       break;
     case 't':
       timingMode = strtoul(optarg,NULL,0);
@@ -94,9 +95,6 @@ int main(int argc, char* argv[])
         return 0;
       }
       break;
-    case 'x':
-      ignoreXbar = true;
-      break;
     case 'r':
       lreset = true;
       break;
@@ -120,15 +118,12 @@ int main(int argc, char* argv[])
   printf("buildStamp %s\n",t->version().buildStamp().c_str());
   printf("upTime %u seconds\n",t->version().upTime());
 
-  if (!ignoreXbar) {
-
-    if (xbar_o>=0) {
-      //    t->xbar().setOut( XBar::FPGA, XBar::Map(xbar) );
-      t->xbar().setOut( XBar::Map(xbar_o), XBar::Map(xbar_v) );
-    }
-
-    t->xbar().dump();
+  if (xbar_o>=0) {
+    //    t->xbar().setOut( XBar::FPGA, XBar::Map(xbar) );
+    t->xbar().setOut( XBar::Map(xbar_o), XBar::Map(xbar_v) );
   }
+
+  t->xbar().dump();
 
   if (polarity>=0)
     t->setPolarity(polarity);
