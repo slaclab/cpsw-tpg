@@ -128,12 +128,21 @@ class SeqUser:
         time.sleep(0.1)
 
         ninstr = self.ninstr.get()
+        if ninstr != len(instrset):
+            print 'Error: ninstr invalid %u (%u)' % (ninstr, len(instrset))
+            return
+
         print 'Confirmed ninstr %d'%ninstr
 
         self.insert.put(1)
+        self.insert.put(0)
 
         #  Get the assigned sequence num
         idx = self.idxseq.get()
+        if idx < 2:
+            print 'Error: subsequence index  invalid (%u)' % idx
+            return
+
         print 'Sequence '+self.seqname.get()+' found at index %d'%idx
 
         #  self.post(idx,title,ninstr)

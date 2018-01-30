@@ -11,15 +11,52 @@ Prefix = 'TPG:SYS2:2'
 fixedRates = ['929kHz','71.4kHz','10.2kHz','1.02kHz','102Hz','10.2Hz','1.02Hz']
 NMpsSeq = 14
 charge = 100
-
+MaxPower = 2
+rateStep  = [0,13,91,10,10,10,10]
+rateSuper = [0, 0, 0, 2, 2, 2, 2]
 defPalette = QtGui.QPalette()
 limPalette = QtGui.QPalette(QtGui.QColor(255,0,0))
+
+def powerClass(rate):
+    pclass = 3
+    if rate*charge <= 300000000:
+        pclass = 2
+    if rate <= 10 and charge <= 300:
+        pclass = 1
+    if rate == 0:
+        pclass = 0
+    print 'power class [%u] = %u'%(rate,pclass)
+    return pclass
+
+#  returns column#, sync, nocc, power class, label
+def baseColGen():
+    yield( 0, 6, 0, 0,'None')
+    yield( 1, 6, 1, powerClass(      1),   '1Hz')
+    yield( 2, 5, 1, powerClass(     10),  '10Hz')
+    yield( 3, 4, 1, powerClass(    100), '100Hz')
+    yield( 4, 3, 1, powerClass(   1000),  '1kHz')
+    yield( 5, 2, 1, powerClass(  10000), '10kHz')
+    yield( 6, 2,10, powerClass( 100000),'100kHz')
+    yield( 7, 0, 1, powerClass( 910000),'910kHz')
+#    yield( 2, 6, 2, powerClass(      2),   '2Hz')
+#    yield( 3, 5, 1, powerClass(     10),  '10Hz')
+#    yield( 4, 5, 2, powerClass(     20),  '20Hz')
+#    yield( 5, 4, 1, powerClass(    100), '100Hz')
+#    yield( 6, 4, 2, powerClass(    200), '200Hz')
+#    yield( 7, 3, 1, powerClass(   1000),  '1kHz')
+#    yield( 8, 3, 2, powerClass(   2000),  '2kHz')
+#    yield( 9, 2, 1, powerClass(  10000), '10kHz')
+#    yield(10, 2, 2, powerClass(  20000), '20kHz')
+#    yield(11, 1, 1, powerClass(  70000), '70kHz')
+#    yield(12, 1, 2, powerClass( 140000),'140kHz')
+#    yield(13, 0, 1, powerClass(1000000),  '1MHz')
 
 class PvRate(PvInt):
 
     def __init__(self,pv):
         super(PvRate,self).__init__(pv)
         self.setMaximumWidth(60)
+        self.pv.monitor_start()
 
 class PvSim:
 
@@ -96,10 +133,10 @@ class BasicSequence(object):
         if nreq>0:
             instrset.append( FixedRateSync(marker=sync,occ=1) )
             instrset.append( BeamRequest(charge) )
-        while nreq>1:
-            instrset.append( FixedRateSync(marker=sync-1,occ=1) )
-            instrset.append( BeamRequest(charge) )
-            nreq -= 1
+        if nreq>1:
+            nocc = rateStep[sync]/nreq
+            instrset.append( FixedRateSync(marker=rateSuper[sync],occ=nocc) )
+            instrset.append( Branch.conditional(1, 0, nreq-1) )
         instrset.append( Branch.unconditional(0) )
 
         title = 'Sync[%d]'%sync
@@ -159,7 +196,7 @@ class MpsSequence(BasicSequence):
 
 class RateButton(QtGui.QPushButton):
 
-    def __init__(self, label, parent, blsegm, rate):
+    def __init__(self, label, parent, blsegm, rate, pclass):
         super(RateButton,self).__init__(label)
 
         self.setCheckable(True)
@@ -167,6 +204,7 @@ class RateButton(QtGui.QPushButton):
         self.parent = parent
         self.blsegm = blsegm
         self.rate   = rate
+        self.pclass = pclass
         self.pressed.connect(self.update)
 
     def update(self):
@@ -180,7 +218,7 @@ class RateButton(QtGui.QPushButton):
         else:
             self.setPalette(defPalette)
 
-segmName = ['LINAC','SXU','HXU','LINAC*']
+segmName = ['LINAC']
 rateBase = ['','0','00']
 rateUnit = ['Hz','kHz','MHz']
 
@@ -216,7 +254,7 @@ class TableDisplay(QtGui.QWidget):
                                  p[2],
                                  p[3])
 #                print p,pidx
-                button = RateButton(p[4],self,idx,p[0])
+                button = RateButton(p[4],self,idx,p[0],p[3])
                 layout.addWidget(button,idx+1,p[0]+1,QtCore.Qt.AlignHCenter)
                 group.addButton(button)
             self.bgroups.append(group)
@@ -244,7 +282,7 @@ class RateDisplay(QtGui.QWidget):
         layout.addWidget(QtGui.QLabel('Allow\nClass'), 0, 5, QtCore.Qt.AlignHCenter)
         layout.addWidget(QtGui.QLabel('Deliv\nClass'), 0, 6, QtCore.Qt.AlignHCenter)
 
-        for idx in range(3):
+        for idx in range(len(segmName)):
             layout.addWidget(QtGui.QLabel(segmName[idx]),idx+1,0,QtCore.Qt.AlignHCenter)
             if Do_Sim==False:
                 layout.addWidget(PvRate(Prefix+':DST%02d:REQRATE'%idx),idx+1,1,QtCore.Qt.AlignHCenter)
@@ -270,25 +308,10 @@ class RateDisplay(QtGui.QWidget):
         self.setLayout(layout)
 
 
-def allowRowGen():
-    #  returns engine number, label
-    for index in range(3):
-        yield (index, segmName[index])
-
-def allowColGen():
-    #  returns column#, sync, nocc, power class
-    yield (0, 6, 0, 0, 'None')
-    for index in range(13):
-        label = '%d'%(1+(index%2))
-        label += rateBase[(index/2)%3]
-        label += rateUnit[(index/6)]
-        yield (index+1, 6-index/2, 1+(index%2), index+1, label)
-
 class AllowEngine:
 
     def __init__(self, engine, buttons):
         self.buttons = buttons
-        self.state   = len(buttons)-1
 
         prefix = Prefix+':ALW%02d:'%engine
 
@@ -305,10 +328,10 @@ class AllowEngine:
         self.pvlatch.add_monitor_callback(self.updateLatch)
 
         self.state = 0
-        self.buttons[self.state].limit(True)
+        self.buttons[0].limit(True)
+        self.buttons[0].setChecked(True)
         self.setLatch(self.pvlatch.value)
         self.updateState(0)
-        self.buttons[self.state].setChecked(True)
 
     def setLatch(self,value):
         self.request = value
@@ -317,37 +340,64 @@ class AllowEngine:
             self.pvsetstate.put(value)
 
     def updateState(self,err):
-        #  Limit state to values we can display
         value = self.pvstate.value
         if value >= len(self.buttons):
             value = len(self.buttons)-1
-        print 'updateState from(%d)'%self.state+' to(%d)'%value
         if value != self.state:
+            lim = 0
             for i in range(len(self.buttons)):
-                self.buttons[i].setEnabled(i<=value)
-            self.buttons[self.state].limit(False)
+                self.buttons[i].limit(False)
+                if self.buttons[i].pclass <= value:
+                    self.buttons[i].setEnabled(True)
+                    lim = i
+                else:
+                    self.buttons[i].setEnabled(False)
+            print 'updateState from(%d)'%self.state+' to(%d)'%value+' yields %d'%lim
+            self.buttons[lim].limit(True)
             self.state = value
-            self.buttons[self.state].limit(True)
 
     def updateLatch(self,err):
         value = self.pvlatch.value
         print 'updateLatch to(%d)'%value
         self.buttons[value].setChecked(True)
 
+def allowRowGen():
+    #  returns engine number, label
+    for index in range(len(segmName)):
+        yield (index, segmName[index])
+
+def allowColGen():
+    #  returns column#, sync, nocc, power class, label
+    i = 0
+    q = (0,0,0,100,'None')
+    for p in baseColGen():
+        if p[3] > q[3]:
+            while (i<p[3]):
+                yield (i,q[1],q[2],q[3],q[4])
+                i += 1
+        q = p
+    while (i<=MaxPower):
+        yield (i,q[1],q[2],q[3],q[4])
+        i += 1
+
 class AllowTable(TableDisplay):
 
     def __init__(self):
-        super(AllowTable,self).__init__('MPS Class',allowRowGen,allowColGen)
+        super(AllowTable,self).__init__('Allow Table',allowRowGen,allowColGen)
 
         self.engines = []
         for row in allowRowGen():
             eng = AllowEngine(row[0],self.bgroups[row[0]].buttons())
             self.engines.append(eng)
-            self.request(row[0],0)
+        self.request(row[0],0)
 
     def request(self,row,value):
         print 'Request row %d'%row+' value %d'%value
         self.engines[row].setLatch(value)
+#        self.seq[row].idxrun.put(value+2)
+#        self.seq[row].start.put(0)
+#        self.seq[row].reset.put(1)
+#        self.seq[row].reset.put(0)
 
     def setState(self,row,value):
         self.bgroups[row].buttons()[self.limits[row]].limit(False)
@@ -358,22 +408,12 @@ class AllowTable(TableDisplay):
 
 def requestRowGen():
     #  returns engine number, label, destination, required mask
-    for index in range(4):
-        yield (index+16, segmName[index], index%3, (1<<(index%3))|1)
+    for index in range(len(segmName)):
+        yield (index+16, segmName[index], index%3, (1<<(index%3)))
 
 def requestColGen():
-    #  returns column#, sync, nocc, power class
-    yield (0, 6, 0, 0, 'None')
-#    for index in range(7):
-#        label = '1'
-#        label += rateBase[index%3]
-#        label += rateUnit[index/3]
-#        yield (index+1, 6-index, 1, index+1, label)
-    for index in range(13):
-        label = '%d'%(1+(index%2))
-        label += rateBase[(index/2)%3]
-        label += rateUnit[(index/6)]
-        yield (index+1, 6-index/2, 1+(index%2), index+1, label)
+    for p in baseColGen():
+        yield p
     
 class RateTable(TableDisplay):
 
@@ -448,6 +488,12 @@ class Ui_AllowWindow(object):
 
 if __name__ == '__main__':
     print QtCore.PYQT_VERSION_STR
+
+    parser = argparse.ArgumentParser(description='eic allow table example')
+    parser.add_argument('--pv' , help="TPG pv base", default='TPG:SYS2:2')
+    parser.add_argument('--q', help="bunch charge", type=int, default=100)
+    args = parser.parse_args()
+    charge = args.q
 
     app = QtGui.QApplication([])
     MainWindow = QtGui.QMainWindow()

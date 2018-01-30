@@ -86,6 +86,7 @@ class PvInt(PvEditInt):
     def __init__(self,pv):
         super(PvInt, self).__init__(pv)
         self.setEnabled(False)
+        self.pv.monitor_start()
 
 class PvEditDbl(PvEditTxt):
 
