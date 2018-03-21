@@ -1,3 +1,7 @@
+R1.3.0      03/21/2018    Kukhee Kim
+            Bumpup cpsw framework R3.6.3
+            Bumpup bsa api R1.1.0
+
 R1.2.8      11/27/2017    Kukhee Kim / Matt Weaver
             Add mps link/communication diagnostics API
             Fix return value for sequence_engine::cache(int); remove exception
