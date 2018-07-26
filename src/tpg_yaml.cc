@@ -601,6 +601,12 @@ namespace TPGen {
       IScalVal_RO::create(_path->findByName("TxClockFreq"))->getVal(&txClkFreq,1);
   }
 
+  void     TPGYaml::getTimingFrameRxDiag (unsigned& txClkCount)
+  {
+      Path _path = _private->root->findByName("mmio/AmcCarrierTimingGenerator/AmcCarrierCore/AmcCarrierTiming/TimingFrameRx/");
+      IScalVal_RO::create(_path->findByName("TxClkCount"))->getVal(&txClkCount, 1);
+  }
+
   Callback* TPGYaml::subscribeBSA     (unsigned bsaArray,
 					  Callback* cb)
   { Callback* v = _private->bsaCallback[bsaArray];

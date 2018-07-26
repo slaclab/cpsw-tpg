@@ -103,6 +103,7 @@ namespace TPGen {
                               unsigned& remLnkRdy,
                               unsigned& rxClkFreq,
                               unsigned& txClkFreq);
+    void     getTimingFrameRxDiag(unsigned& txClkCount);
 
     //  Power line sampling ADC
     void     initADC         ();

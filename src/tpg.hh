@@ -231,6 +231,7 @@ namespace TPGen {
                                      unsigned& remLnkRdy,
                                      unsigned& rxClkFreq,
                                      unsigned& txClkFreq) = 0;
+    virtual void     getTimingFrameRxDiag(unsigned& txClkCount) = 0;
  
     //
     //  Asynchronous notification.

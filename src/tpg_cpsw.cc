@@ -808,6 +808,12 @@ namespace TPGen {
   }
 
 
+  void    TPGCpsw::getTimingFrameRxDiag(unsigned& txClkCount)
+  {
+      Path _path = _private->path->findByName("mmio/AmcCarrierTimingGenerator/AmcCarrierCore/AmcCarrierTiming/TimingFrameRx/");
+      IScalVal_RO::create(_path->findByName("TxClkCount"))->getVal(&txClkCount, 1);
+  }
+
 
   Callback* TPGCpsw::subscribeBSA     (unsigned bsaArray,
 					  Callback* cb)
