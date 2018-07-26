@@ -1,3 +1,8 @@
+R1.3.1      07/24/2018    Kukhee Kim
+            Bumpup cpsw framework R3.6.4
+            Bumpup bsa api R1.1.1
+            Read out TxClCount from TimingFrameRx to detect RF clcok disruption
+
 R1.3.0      03/21/2018    Kukhee Kim
             Bumpup cpsw framework R3.6.3
             Bumpup bsa api R1.1.0
