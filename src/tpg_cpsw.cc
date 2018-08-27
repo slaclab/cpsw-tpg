@@ -307,10 +307,12 @@ namespace TPGen {
 
   int TPGCpsw::setBaseDivisor(unsigned v)
   { 
-    if (v > FRAME_SIZE/sizeof(uint16_t)+4)
-      return -1;
-    SET_U32(BaseControl,v);
-    return 0;
+    if (v > FRAME_SIZE/sizeof(uint16_t)+4) {
+        SET_U32(BaseControl,v);
+        return 0;
+    }
+
+    return -1;
   }
 
   int TPGCpsw::setACDelay(unsigned v)

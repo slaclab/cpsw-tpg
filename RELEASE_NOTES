@@ -1,3 +1,6 @@
+R1.3.2      08/27/2018    Kukhee Kim
+            Bug fixing for setBaseDivisor()
+
 R1.3.1      07/24/2018    Kukhee Kim
             Bumpup cpsw framework R3.6.4
             Bumpup bsa api R1.1.1
