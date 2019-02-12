@@ -591,7 +591,9 @@ namespace TPGen {
                                        unsigned& locLnkRdy,
                                        unsigned& remLnkRdy,
                                        unsigned& rxClkFreq,
-                                       unsigned& txClkFreq)
+                                       unsigned& txClkFreq,
+                                       unsigned& rxFrameErrorCount,
+                                       unsigned& rxFrameCount)
   {
       Path _path = _private->root->findByName("mmio/AmcCarrierTimingGenerator/ApplicationCore/TPGMps/Pgp2bAxi/");
       IScalVal_RO::create(_path->findByName("PhyReadyRx"))->getVal(&rxRdy,1);
@@ -600,6 +602,8 @@ namespace TPGen {
       IScalVal_RO::create(_path->findByName("RemoteLinkReady"))->getVal(&remLnkRdy,1);
       IScalVal_RO::create(_path->findByName("RxClockFreq"))->getVal(&rxClkFreq,1);
       IScalVal_RO::create(_path->findByName("TxClockFreq"))->getVal(&txClkFreq,1);
+      IScalVal_RO::create(_path->findByName("RxFrameErrorCount"))->getVal(&rxFrameErrorCount,1);
+      IScalVal_RO::create(_path->findByName("RxFrameCount"))->getVal(&rxFrameCount,1);
   }
 
   void     TPGYaml::getTimingFrameRxDiag (unsigned& txClkCount)

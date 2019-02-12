@@ -104,7 +104,9 @@ namespace TPGen {
                               unsigned& locLnkRdy,
                               unsigned& remLnkRdy,
                               unsigned& rxClkFreq,
-                              unsigned& txClkFreq);
+                              unsigned& txClkFreq,
+                              unsigned& rxFrameErrorCount,
+                              unsigned& rxFrameCount);
     void     getTimingFrameRxDiag(unsigned& txClkCount);
 
     //  Power line sampling ADC

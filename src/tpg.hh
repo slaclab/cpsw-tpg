@@ -230,7 +230,9 @@ namespace TPGen {
                                      unsigned& locLnkRdy,
                                      unsigned& remLnkRdy,
                                      unsigned& rxClkFreq,
-                                     unsigned& txClkFreq) = 0;
+                                     unsigned& txClkFreq,
+                                     unsigned& rxFrameErrorCount,
+                                     unsigned& rxFrameCount) = 0;
     virtual void     getTimingFrameRxDiag(unsigned& txClkCount) = 0;
  
     //
