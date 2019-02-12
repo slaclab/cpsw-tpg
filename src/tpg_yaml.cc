@@ -356,12 +356,12 @@ namespace TPGen {
     printrn (BeamEnergy,4);
     { printf("%15.15s:","MpsLink");
       Path pgp_path = _private->root->findByName("mmio/AmcCarrierTimingGenerator/ApplicationCore/TPGMps/Pgp2bAxi/");
-      printf(" RxRdy[%c]", _GET_U32("PhyReadyRx",pgp_path) ? 'T':'F');
-      printf(" TxRdy[%c]", _GET_U32("PhyReadyTx",pgp_path) ? 'T':'F');
-      printf(" LocRdy[%c]", _GET_U32("LocalLinkReady",pgp_path) ? 'T':'F');
-      printf(" RemRdy[%c]", _GET_U32("RemoteLinkReady",pgp_path) ? 'T':'F');
-      printf(" RxClkF[%u]", _GET_U32("RxClockFreq",pgp_path));
-      printf(" TxClkF[%u]", _GET_U32("TxClockFreq",pgp_path));
+      printf(" RxRdy[%c]", _GET_U32("RxPhyReady",pgp_path) ? 'T':'F');
+      printf(" TxRdy[%c]", _GET_U32("TxPhyReady",pgp_path) ? 'T':'F');
+      printf(" LocRdy[%c]", _GET_U32("RxLocalLinkReady",pgp_path) ? 'T':'F');
+      printf(" RemRdy[%c]", _GET_U32("RxRemLinkReady",pgp_path) ? 'T':'F');
+      printf(" RxClkF[%u]", _GET_U32("RxClkFreq",pgp_path));
+      printf(" TxClkF[%u]", _GET_U32("TxClkFreq",pgp_path));
       printf("\n"); }
     { printf("%15.15s:","MpsState(Latch)");
       IndexRange rng(0);
@@ -596,12 +596,12 @@ namespace TPGen {
                                        unsigned& rxFrameCount)
   {
       Path _path = _private->root->findByName("mmio/AmcCarrierTimingGenerator/ApplicationCore/TPGMps/Pgp2bAxi/");
-      IScalVal_RO::create(_path->findByName("PhyReadyRx"))->getVal(&rxRdy,1);
-      IScalVal_RO::create(_path->findByName("PhyReadyTx"))->getVal(&txRdy,1);
-      IScalVal_RO::create(_path->findByName("LocalLinkReady"))->getVal(&locLnkRdy,1);
-      IScalVal_RO::create(_path->findByName("RemoteLinkReady"))->getVal(&remLnkRdy,1);
-      IScalVal_RO::create(_path->findByName("RxClockFreq"))->getVal(&rxClkFreq,1);
-      IScalVal_RO::create(_path->findByName("TxClockFreq"))->getVal(&txClkFreq,1);
+      IScalVal_RO::create(_path->findByName("RxPhyReady"))->getVal(&rxRdy,1);
+      IScalVal_RO::create(_path->findByName("TxPhyReady"))->getVal(&txRdy,1);
+      IScalVal_RO::create(_path->findByName("RxLocalLinkReady"))->getVal(&locLnkRdy,1);
+      IScalVal_RO::create(_path->findByName("RxRemLinkReady"))->getVal(&remLnkRdy,1);
+      IScalVal_RO::create(_path->findByName("RxClkFreq"))->getVal(&rxClkFreq,1);
+      IScalVal_RO::create(_path->findByName("TxClkFreq"))->getVal(&txClkFreq,1);
       IScalVal_RO::create(_path->findByName("RxFrameErrorCount"))->getVal(&rxFrameErrorCount,1);
       IScalVal_RO::create(_path->findByName("RxFrameCount"))->getVal(&rxFrameCount,1);
   }
