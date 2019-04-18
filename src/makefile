@@ -37,8 +37,12 @@ STATIC_LIBRARIES+=ncpsw
 STATIC_LIBRARIES+=hps
 
 tpg_tst_SRCS = tpg_tst.cc app.cc
-tpg_tst_LIBS = tpg bsa $(CPSW_LIBS)
+tpg_tst_LIBS = tpg bsa hps $(CPSW_LIBS)
 PROGRAMS    += tpg_tst
+
+tpg_dump_SRCS = tpg_dump.cc app.cc
+tpg_dump_LIBS = tpg bsa hps $(CPSW_LIBS)
+PROGRAMS    += tpg_dump
 
 async_poll_SRCS = async_poll.cc
 async_poll_LIBS = $(CPSW_LIBS)

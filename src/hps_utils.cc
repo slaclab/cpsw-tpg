@@ -21,6 +21,22 @@ std::string AxiVersion::buildStamp() const
   buff[255]=0;
   return std::string(buff);
 }
+unsigned AxiVersion::upTime() const
+{
+  unsigned v;
+  IScalVal_RO::create(_root->findByName("UpTimeCnt"))->getVal(&v);
+  return v;
+}
+void AxiVersion::reset()
+{
+  unsigned v = 1;
+  IScalVal::create(_root->findByName("MasterReset"))->setVal(&v);
+}
+void AxiVersion::reload()
+{
+  unsigned v = 1;
+  IScalVal::create(_root->findByName("FpgaReload"))->setVal(&v);
+}
 
 XBar::XBar(Path root) : _root(root) {}
 void XBar::setOut( Map out, Map in )
@@ -41,7 +57,7 @@ void XBar::dump  () const
 
 RingBuffer::RingBuffer(Path root) :
   _csr (IScalVal::create(root->findByName("csr"))),
-  _dump(IScalVal::create(root->findByName("csr")))
+  _dump(IScalVal::create(root->findByName("dump")))
 {
 }
 
@@ -70,7 +86,11 @@ void RingBuffer::dump()
 {
   unsigned len;
   _csr->getVal(&len);
-  len &= 0xfffff;
+  unsigned wid = (len>>20)&0xff;
+  len &= (1<<wid)-1;
+  printf("[wid=%x,len=%x]\n",wid,len);
+  //  firmware only captures to a max length of 0x3ff words
+  if (len>0x3ff) len=0x3ff;
   uint32_t* buff = new uint32_t[len];
   _dump->getVal(buff,len);
   for(unsigned i=0; i<len; i++)
@@ -82,7 +102,7 @@ void RingBuffer::clear_and_dump()
   enable(false);
   clear();
   enable(true);
-  usleep(10);
+  usleep(100);
   enable(false);
   dump();
 }
@@ -427,6 +447,8 @@ void GthEyeScan::progress(unsigned& row,
   row = row_;
   col = column_;
 }
+
+IpAddrFixup::~IpAddrFixup() {}
 
 void IpAddrFixup::operator()(YAML::Node& node)
 {

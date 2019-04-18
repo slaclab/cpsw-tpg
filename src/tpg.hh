@@ -126,7 +126,9 @@ namespace TPGen {
     virtual void initializeRam         () = 0;
     virtual void acquireHistoryBuffers (bool) = 0;
     virtual void clearHistoryBuffers   (unsigned) = 0;
+    virtual void setHistoryBufferHoldoff(unsigned) = 0;
     virtual std::vector<FaultStatus> getHistoryStatus() = 0;
+    virtual unsigned faultCounts() const = 0;
     //
     //  Program the beam energy meta data
     //
@@ -205,7 +207,8 @@ namespace TPGen {
     //  Counts per interval
     //
     virtual void setCountInterval    (unsigned v) = 0;
-    virtual unsigned getBaseRateTrigs() const = 0;  // Base rate triggers/frames
+    virtual unsigned getBaseRateTrigs() const = 0;  // Base rate triggers/frame
+    virtual unsigned getInputTrigs   (unsigned ch) const = 0;  // External triggers
     // Sequence requests
     virtual unsigned getSeqRequests  (unsigned seq) const = 0; 
     virtual unsigned getSeqRequests  (unsigned* array, unsigned array_size) const = 0;
@@ -224,7 +227,6 @@ namespace TPGen {
     virtual void     getMpsState     (unsigned  destination, 
                                       unsigned& latch, 
                                       unsigned& state) = 0;
-
     virtual void     getMpsCommDiag (unsigned& rxRdy,
                                      unsigned& txRdy,
                                      unsigned& locLnkRdy,
@@ -234,7 +236,7 @@ namespace TPGen {
                                      unsigned& rxFrameErrorCount,
                                      unsigned& rxFrameCount) = 0;
     virtual void     getTimingFrameRxDiag(unsigned& txClkCount) = 0;
- 
+
     //
     //  Asynchronous notification.
     //  Returns previously registered callback.

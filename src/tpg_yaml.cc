@@ -128,7 +128,7 @@ namespace TPGen {
     Callback*                        faultCallback;
   };
 
-  TPGYaml::TPGYaml(Path root) :
+  TPGYaml::TPGYaml(Path root, bool initialize) :
     _private(new PrivateData)
   {
     _private->root        = root;
@@ -163,7 +163,8 @@ namespace TPGen {
     //
     //  09-30-2017, Kukhee Kim, the polling thread will be created by epics with RT priority
 
-    initializeRam();
+    if (initialize)
+      initializeRam();
   }
 
   TPGYaml::~TPGYaml() 
@@ -209,11 +210,10 @@ namespace TPGen {
 
   int TPGYaml::setBaseDivisor(unsigned v)
   { 
-    if (v > FRAME_SIZE/sizeof(uint16_t)+4) {
-        SET_U32(BaseControl,v);
-        return 0;
-    }
-    return -1;
+    if (v > FRAME_SIZE/sizeof(uint16_t)+4)
+      return -1;
+    SET_U32(BaseControl,v);
+    return 0;
   }
 
   int TPGYaml::setACDelay(unsigned v)
@@ -297,17 +297,23 @@ namespace TPGen {
   void TPGYaml::clearHistoryBuffers(unsigned v)
   { SET_U32(BeamDiagControl,1<<v); }
 
+  void TPGYaml::setHistoryBufferHoldoff(unsigned v)
+  { SET_U32(BeamDiagHoldoff,v); }
+
   std::vector<FaultStatus> TPGYaml::getHistoryStatus()
   { std::vector<FaultStatus> vec(4);
     for(unsigned i=0; i<4; i++) {
       unsigned v = GET_U32I(BeamDiagStatus,i);
-      vec[i].manualLatch = v&(1<<31);
-      vec[i].bcsLatch    = v&(1<<30);
+      vec[i].manualLatch = v&(1<<31); 
+     vec[i].bcsLatch    = v&(1<<30);
       vec[i].mpsLatch    = v&(1<<29);
       vec[i].tag         = (v>>16)&0xfff;
       vec[i].mpsTag      = v&0xffff;
     }
     return vec; }
+
+  unsigned TPGYaml::faultCounts() const
+  { return GET_U32(BeamDiagCount); }
 
   void TPGYaml::setEnergy(const std::vector<unsigned>& energy) {
     IScalVal::create(_private->tpg->findByName("TPGControl/BeamEnergy"))->setVal(const_cast<unsigned*>(energy.data()),4);
@@ -356,12 +362,14 @@ namespace TPGen {
     printrn (BeamEnergy,4);
     { printf("%15.15s:","MpsLink");
       Path pgp_path = _private->root->findByName("mmio/AmcCarrierTimingGenerator/ApplicationCore/TPGMps/Pgp2bAxi/");
-      printf(" RxRdy[%c]", _GET_U32("RxPhyReady",pgp_path) ? 'T':'F');
-      printf(" TxRdy[%c]", _GET_U32("TxPhyReady",pgp_path) ? 'T':'F');
-      printf(" LocRdy[%c]", _GET_U32("RxLocalLinkReady",pgp_path) ? 'T':'F');
-      printf(" RemRdy[%c]", _GET_U32("RxRemLinkReady",pgp_path) ? 'T':'F');
-      printf(" RxClkF[%u]", _GET_U32("RxClkFreq",pgp_path));
-      printf(" TxClkF[%u]", _GET_U32("TxClkFreq",pgp_path));
+      printf(" RxRdy[%c]", _GET_U32("PhyReadyRx",pgp_path) ? 'T':'F');
+      printf(" TxRdy[%c]", _GET_U32("PhyReadyTx",pgp_path) ? 'T':'F');
+      printf(" LocRdy[%c]", _GET_U32("LocalLinkReady",pgp_path) ? 'T':'F');
+      printf(" RemRdy[%c]", _GET_U32("RemoteLinkReady",pgp_path) ? 'T':'F');
+      printf(" RxClkF[%u]", _GET_U32("RxClockFreq",pgp_path));
+      printf(" TxClkF[%u]", _GET_U32("TxClockFreq",pgp_path));
+      printf(" RxFrameCnt[%u]", _GET_U32("RxFrameCnt",pgp_path));
+      printf(" RxFrameErr[%u]", _GET_U32("RxFrameErrCnt",pgp_path));
       printf("\n"); }
     { printf("%15.15s:","MpsState(Latch)");
       IndexRange rng(0);
@@ -373,6 +381,7 @@ namespace TPGen {
         if ((i%10)==9) printf("\n                ");
       }
       printf("\n"); }
+    printr  (BeamDiagCount);
     printrn (BeamDiagStatus,4);
     printr  (SeqRestart);
 #if 0
@@ -557,7 +566,7 @@ namespace TPGen {
   unsigned TPGYaml::getSyncErrors   () const { return GET_U32S(CountSyncE); }
   unsigned TPGYaml::getCountInterval() const { return GET_U32S(CountIntv); }
   unsigned TPGYaml::getBaseRateTrigs() const { return GET_U32S(CountBRT); }
-  unsigned TPGYaml::getInputTrigs(unsigned ch) const { return GET_U32SI(CountTrig,ch); }
+  unsigned TPGYaml::getInputTrigs   (unsigned ch) const { return GET_U32SI(CountTrig,ch); }
   unsigned TPGYaml::getSeqRequests  (unsigned seq) const { return GET_U32SI(CountSeq,seq); }
   unsigned TPGYaml::getSeqRequests  (unsigned* array, unsigned array_size) const
   { unsigned n = array_size;
@@ -585,7 +594,7 @@ namespace TPGen {
     latch = a&0xf;
     state = (a>>4)&0xf;
   }
-
+ 
   void     TPGYaml::getMpsCommDiag    (unsigned& rxRdy,
                                        unsigned& txRdy,
                                        unsigned& locLnkRdy,
@@ -595,23 +604,23 @@ namespace TPGen {
                                        unsigned& rxFrameErrorCount,
                                        unsigned& rxFrameCount)
   {
-      Path _path = _private->root->findByName("mmio/AmcCarrierTimingGenerator/ApplicationCore/TPGMps/Pgp2bAxi/");
-      IScalVal_RO::create(_path->findByName("RxPhyReady"))->getVal(&rxRdy,1);
-      IScalVal_RO::create(_path->findByName("TxPhyReady"))->getVal(&txRdy,1);
-      IScalVal_RO::create(_path->findByName("RxLocalLinkReady"))->getVal(&locLnkRdy,1);
-      IScalVal_RO::create(_path->findByName("RxRemLinkReady"))->getVal(&remLnkRdy,1);
-      IScalVal_RO::create(_path->findByName("RxClkFreq"))->getVal(&rxClkFreq,1);
-      IScalVal_RO::create(_path->findByName("TxClkFreq"))->getVal(&txClkFreq,1);
-      IScalVal_RO::create(_path->findByName("RxFrameErrorCount"))->getVal(&rxFrameErrorCount,1);
-      IScalVal_RO::create(_path->findByName("RxFrameCount"))->getVal(&rxFrameCount,1);
+    Path _path = _private->root->findByName("mmio/AmcCarrierTimingGenerator/ApplicationCore/TPGMps/Pgp2bAxi/");
+    IScalVal_RO::create(_path->findByName("RxPhyReady"))->getVal(&rxRdy,1);
+    IScalVal_RO::create(_path->findByName("TxPhyReady"))->getVal(&txRdy,1);
+    IScalVal_RO::create(_path->findByName("RxLocalLinkReady"))->getVal(&locLnkRdy,1);
+    IScalVal_RO::create(_path->findByName("RxRemLinkReady"))->getVal(&remLnkRdy,1);
+    IScalVal_RO::create(_path->findByName("RxClkFreq"))->getVal(&rxClkFreq,1);
+    IScalVal_RO::create(_path->findByName("TxClkFreq"))->getVal(&txClkFreq,1);
+    IScalVal_RO::create(_path->findByName("RxFrameErrorCount"))->getVal(&rxFrameErrorCount,1);
+    IScalVal_RO::create(_path->findByName("RxFrameCount"))->getVal(&rxFrameCount,1);
   }
 
   void     TPGYaml::getTimingFrameRxDiag (unsigned& txClkCount)
   {
-      Path _path = _private->root->findByName("mmio/AmcCarrierTimingGenerator/AmcCarrierCore/AmcCarrierTiming/TimingFrameRx/");
-      IScalVal_RO::create(_path->findByName("TxClkCount"))->getVal(&txClkCount, 1);
+    Path _path = _private->root->findByName("mmio/AmcCarrierTimingGenerator/AmcCarrierCore/AmcCarrierTiming/TimingFrameRx/");
+    IScalVal_RO::create(_path->findByName("TxClkCount"))->getVal(&txClkCount, 1);
   }
-
+  
   Callback* TPGYaml::subscribeBSA     (unsigned bsaArray,
 					  Callback* cb)
   { Callback* v = _private->bsaCallback[bsaArray];

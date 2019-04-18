@@ -23,6 +23,10 @@
 #include <unistd.h>
 
 #include <cpsw_api_user.h>
+#include <cpsw_yaml_keydefs.h>
+#include <cpsw_yaml.h>
+
+#include "hps_utils.hh"
 
 static void usage(const char* p)
 {
@@ -59,7 +63,8 @@ int main(int argc, char* argv[])
 
   TPGen::TPG* p;
   if (yaml) {
-    Path path = IPath::loadYamlFile(yaml,"NetIODev");
+    IYamlFixup* fixup = new Cphw::IpAddrFixup(ip);
+    Path path = IPath::loadYamlFile(yaml,"NetIODev",0,fixup);
     p = new TPGen::TPGYaml(path);
   }
   else 

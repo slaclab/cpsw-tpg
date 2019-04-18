@@ -17,7 +17,7 @@ namespace TPGen {
 
   class TPGYaml : public TPG {
   public:
-    TPGYaml(Path root);
+    TPGYaml(Path root, bool initialize=true);
     ~TPGYaml();
   public:
     //
@@ -47,7 +47,9 @@ namespace TPGen {
     void     initializeRam();
     void     acquireHistoryBuffers (bool);
     void     clearHistoryBuffers   (unsigned);
+    void     setHistoryBufferHoldoff(unsigned);  // in base rate cycles
     std::vector<FaultStatus> getHistoryStatus();
+    unsigned faultCounts() const;
     void     setEnergy(const std::vector<unsigned>&);
     void     setWavelength(const std::vector<unsigned>&);
 

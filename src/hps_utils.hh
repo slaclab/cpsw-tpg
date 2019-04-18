@@ -16,6 +16,9 @@ namespace Cphw {
   public:
     AxiVersion(Path);
     std::string buildStamp() const;
+    unsigned    upTime() const;
+    void reset();
+    void reload();
   public:
     Path _root;
   };
@@ -101,6 +104,7 @@ namespace Cphw {
   class IpAddrFixup : public IYamlFixup {
   public:
     IpAddrFixup(const char* ip) : _ip(ip) {}
+    ~IpAddrFixup();
     void operator()(YAML::Node& node);
   private:
     const char* _ip;
