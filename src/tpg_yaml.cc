@@ -210,8 +210,6 @@ namespace TPGen {
 
   int TPGYaml::setBaseDivisor(unsigned v)
   { 
-    if (v > FRAME_SIZE/sizeof(uint16_t)+4)
-      return -1;
     SET_U32(BaseControl,v);
     return 0;
   }
