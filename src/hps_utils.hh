@@ -105,7 +105,7 @@ namespace Cphw {
   public:
     IpAddrFixup(const char* ip) : _ip(ip) {}
     ~IpAddrFixup();
-    void operator()(YAML::Node& node);
+    void operator()(YAML::Node& node, YAML::Node& dummy);
   private:
     const char* _ip;
   };

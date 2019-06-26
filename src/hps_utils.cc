@@ -450,7 +450,7 @@ void GthEyeScan::progress(unsigned& row,
 
 IpAddrFixup::~IpAddrFixup() {}
 
-void IpAddrFixup::operator()(YAML::Node& node)
+void IpAddrFixup::operator()(YAML::Node& node, YAML::Node& dummy)
 {
   writeNode(node, YAML_KEY_ipAddr, _ip);
 }
