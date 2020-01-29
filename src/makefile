@@ -1,9 +1,9 @@
 CCACHE_DISABLE=1
 
 
-CPSW_DIR=/afs/slac/g/lcls/package/cpsw/framework/R4.3.1/src
+CPSW_DIR=/afs/slac/g/lcls/package/cpsw/framework/R4.4.1/src
 BSA_DIR=/afs/slac/g/lcls/package/timing/bsa
-BSA_VERSION=R1.1.5
+BSA_VERSION=R1.2.0
 BSA=$(BSA_DIR)/$(BSA_VERSION)
 
 # may override CPSW_DIR / DEVICELIB_DIR from release.mak
