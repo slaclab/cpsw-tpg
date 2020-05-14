@@ -13,7 +13,7 @@ SRCDIR=.
 
 include $(CPSW_DIR)/defs.mak
 
-#LDFLAGS+= -Wl,-Bstatic -static-libgcc
+LDFLAGS+= -Wl,-Bstatic -static-libgcc
 LDFLAGS+=-L$(BSA)/$(TARCH)/lib
 
 INCLUDE_DIRS += $(BSA)/$(TARCH)/include
