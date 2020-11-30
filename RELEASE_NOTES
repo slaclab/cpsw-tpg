@@ -1,3 +1,6 @@
+R1.4.1      11/30/2020    Kukhee Kim
+            add exception handloing for individual register access
+
 R1.4.0      05/13.2020    Kukhee Kim
             static build and force tagging
 

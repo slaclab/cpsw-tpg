@@ -79,6 +79,16 @@ static void _SET_U32(const char* name, Path path, unsigned r)
   IScalVal::create(path->findByName(name))->setVal(&v,1);
 }
 
+#define CPSW_TRY_CATCH(X)       try {   \
+        (X);                            \
+    } catch (CPSWError &e) {            \
+        fprintf(stderr,                 \
+                "CPSW Error: %s at %s, line %d\n",     \
+                e.getInfo().c_str(),    \
+                __FILE__, __LINE__);    \
+        throw e;                        \
+    }
+
 #define GET_U32(name)   _GET_U32("TPGControl/"#name,_private->tpg)
 #define GET_U8I(name,i) _GET_U8("TPGControl/"#name,_private->tpg,i)
 #define GET_U32I(name,i) _GET_U32("TPGControl/"#name,_private->tpg,i)
@@ -177,19 +187,29 @@ namespace TPGen {
   { return 0; }
 
   unsigned TPGYaml::nBeamEngines () const
-  { return GET_U32(NBeamSeq); }
+  { unsigned n;
+    CPSW_TRY_CATCH( n = GET_U32(NBeamSeq) );
+    return n; }
 
   unsigned TPGYaml::nAllowEngines () const
-  { return GET_U32(NAllowSeq); }
+  { unsigned n;
+    CPSW_TRY_CATCH( n = GET_U32(NAllowSeq) );
+    return n; }
 
   unsigned TPGYaml::nExptEngines () const
-  { return GET_U32(NControlSeq); }
+  { unsigned n;
+    CPSW_TRY_CATCH( n= GET_U32(NControlSeq) );
+    return n; }
 
   unsigned TPGYaml::nArraysBSA   () const
-  { return GET_U32(NArraysBsa); }
+  { unsigned n;
+    CPSW_TRY_CATCH( n = GET_U32(NArraysBsa) );
+    return n; }
 
   unsigned TPGYaml::seqAddrWidth () const
-  { return GET_U32(SeqAddrLen); }
+  { unsigned n;
+    CPSW_TRY_CATCH( n = GET_U32(SeqAddrLen) );
+    return n; }
 
   unsigned TPGYaml::fifoAddrWidth() const
   { return 0; }
@@ -202,15 +222,15 @@ namespace TPGen {
                              unsigned frac_den)
   {
     if (ns<32 && frac_den<256 && frac_num<frac_den) {
-      SET_U32(ClockPeriodDiv, frac_den);
-      SET_U32(ClockPeriodRem, frac_num);
-      SET_U32(ClockPeriodInt, ns);
+      CPSW_TRY_CATCH( SET_U32(ClockPeriodDiv, frac_den) );
+      CPSW_TRY_CATCH( SET_U32(ClockPeriodRem, frac_num) );
+      CPSW_TRY_CATCH( SET_U32(ClockPeriodInt, ns) );
     }
   }
 
   int TPGYaml::setBaseDivisor(unsigned v)
   { 
-    SET_U32(BaseControl,v);
+    CPSW_TRY_CATCH( SET_U32(BaseControl,v) );
     return 0;
   }
 
@@ -218,32 +238,37 @@ namespace TPGen {
   { 
     if (v > MAX_AC_DELAY)
       return -1;
-    SET_REG(ACDelay,v);
+    CPSW_TRY_CATCH( SET_REG(ACDelay,v) );
     return 0; 
   }
 
   int TPGYaml::setFrameDelay(unsigned v)
   { 
-    unsigned u = GET_U32(BaseControl);
+    unsigned u;
+
+    CPSW_TRY_CATCH( u = GET_U32(BaseControl) );
     if (v < u) {
-      SET_REG(FrameDelay,v);
+      CPSW_TRY_CATCH( SET_REG(FrameDelay,v) );
       return 0; 
     }
     return -1;
   }
 
   void TPGYaml::setPulseID(uint64_t v)
-  { SET_REG(PulseId,v); }
+  { CPSW_TRY_CATCH( SET_REG(PulseId,v) ); }
 
   void TPGYaml::setTimestamp(unsigned sec, unsigned nsec)
-  { uint64_t v=sec; v<<=32; v+=nsec; SET_REG(TStamp,v); }
+  { uint64_t v=sec; v<<=32; v+=nsec; CPSW_TRY_CATCH( SET_REG(TStamp,v) ); }
 
   uint64_t TPGYaml::getPulseID() const
-  { return GET_U64(PulseId); }
+  { uint64_t u;
+    CPSW_TRY_CATCH( u =  GET_U64(PulseId) );
+    return u; }
 
   void     TPGYaml::getTimestamp(unsigned& sec, 
                                  unsigned& nsec) const
-  { uint64_t v = GET_U64(TStamp);
+  { uint64_t v;
+    CPSW_TRY_CATCH( v = GET_U64(TStamp) );
     sec  = v>>32;
     nsec = v&0xffffffff; }
 
@@ -252,16 +277,16 @@ namespace TPGen {
     std::vector<uint8_t> v(d.size());
     for(unsigned i=0; i<d.size(); i++)
       v[i] = d[i]&0xff;
-    IScalVal::create(_private->tpg->findByName("TPGControl/ACRateDiv"))->setVal(v.data(),v.size());
+    CPSW_TRY_CATCH( IScalVal::create(_private->tpg->findByName("TPGControl/ACRateDiv"))->setVal(v.data(),v.size()) );
   }
 
   void TPGYaml::setFixedDivisors(const std::vector<unsigned>& d)
   {
-    IScalVal::create(_private->tpg->findByName("TPGControl/FixedRateDiv"))->setVal(const_cast<uint32_t*>(d.data()),d.size());
+    CPSW_TRY_CATCH( IScalVal::create(_private->tpg->findByName("TPGControl/FixedRateDiv"))->setVal(const_cast<uint32_t*>(d.data()),d.size()) );
   }
 
   void TPGYaml::loadDivisors()
-  { SET_U32(RateReload,1); }
+  { CPSW_TRY_CATCH( SET_U32(RateReload,1) ); }
 
   void TPGYaml::initializeRam()
   {
@@ -281,29 +306,30 @@ namespace TPGen {
     uint32_t one(1), zero(0), mode(doneWhenFull ? 1:0);
     IndexRange rng(index%4);
     printf("Setup waveform memory %i %llx:%llx\n", index, p,pn);
-    IScalVal::create( path->findByName("StartAddr"))->setVal(&p   ,1,&rng);
-    IScalVal::create( path->findByName("EndAddr"  ))->setVal(&pn  ,1,&rng);
-    IScalVal::create( path->findByName("Enabled"  ))->setVal(&one ,1,&rng);
-    IScalVal::create( path->findByName("Mode"     ))->setVal(&mode,1,&rng);
-    IScalVal::create( path->findByName("Init"     ))->setVal(&one ,1,&rng);
-    IScalVal::create( path->findByName("Init"     ))->setVal(&zero,1,&rng);
+    CPSW_TRY_CATCH( IScalVal::create( path->findByName("StartAddr"))->setVal(&p   ,1,&rng) );
+    CPSW_TRY_CATCH( IScalVal::create( path->findByName("EndAddr"  ))->setVal(&pn  ,1,&rng) );
+    CPSW_TRY_CATCH( IScalVal::create( path->findByName("Enabled"  ))->setVal(&one ,1,&rng) );
+    CPSW_TRY_CATCH( IScalVal::create( path->findByName("Mode"     ))->setVal(&mode,1,&rng) );
+    CPSW_TRY_CATCH( IScalVal::create( path->findByName("Init"     ))->setVal(&one ,1,&rng) );
+    CPSW_TRY_CATCH( IScalVal::create( path->findByName("Init"     ))->setVal(&zero,1,&rng) );
   }
 
   void TPGYaml::acquireHistoryBuffers(bool v)
-  { SET_U32(BeamDiagControl,1<<31); }
+  { CPSW_TRY_CATCH( SET_U32(BeamDiagControl,1<<31) ); }
 
   void TPGYaml::clearHistoryBuffers(unsigned v)
-  { SET_U32(BeamDiagControl,1<<v); }
+  { CPSW_TRY_CATCH( SET_U32(BeamDiagControl,1<<v) ); }
 
   void TPGYaml::setHistoryBufferHoldoff(unsigned v)
-  { SET_U32(BeamDiagHoldoff,v); }
+  { CPSW_TRY_CATCH( SET_U32(BeamDiagHoldoff,v) ); }
 
   std::vector<FaultStatus> TPGYaml::getHistoryStatus()
   { std::vector<FaultStatus> vec(4);
     for(unsigned i=0; i<4; i++) {
-      unsigned v = GET_U32I(BeamDiagStatus,i);
+      unsigned v;
+      CPSW_TRY_CATCH( v = GET_U32I(BeamDiagStatus,i) );
       vec[i].manualLatch = v&(1<<31); 
-     vec[i].bcsLatch    = v&(1<<30);
+      vec[i].bcsLatch    = v&(1<<30);
       vec[i].mpsLatch    = v&(1<<29);
       vec[i].tag         = (v>>16)&0xfff;
       vec[i].mpsTag      = v&0xffff;
@@ -311,14 +337,16 @@ namespace TPGen {
     return vec; }
 
   unsigned TPGYaml::faultCounts() const
-  { return GET_U32(BeamDiagCount); }
+  { unsigned u;
+    CPSW_TRY_CATCH( u = GET_U32(BeamDiagCount) );
+    return u; }
 
   void TPGYaml::setEnergy(const std::vector<unsigned>& energy) {
-    IScalVal::create(_private->tpg->findByName("TPGControl/BeamEnergy"))->setVal(const_cast<unsigned*>(energy.data()),4);
+    CPSW_TRY_CATCH( IScalVal::create(_private->tpg->findByName("TPGControl/BeamEnergy"))->setVal(const_cast<unsigned*>(energy.data()),4) );
   }
 
   void TPGYaml::setWavelength(const std::vector<unsigned>& wavelen) {
-    IScalVal::create(_private->tpg->findByName("TPGControl/PhotonWavelen"))->setVal(const_cast<unsigned*>(wavelen.data()),2);
+    CPSW_TRY_CATCH( IScalVal::create(_private->tpg->findByName("TPGControl/PhotonWavelen"))->setVal(const_cast<unsigned*>(wavelen.data()),2) );
   }
 
   void TPGYaml::dump() const {
@@ -430,14 +458,14 @@ namespace TPGen {
   void TPGYaml::dump_rcvr(unsigned n) {
   }
 
-  void TPGYaml::force_sync() { SET_U32(GenStatus,1); }
+  void TPGYaml::force_sync() { CPSW_TRY_CATCH( SET_U32(GenStatus,1) ); }
  
   void TPGYaml::reset_xbar()
   {
     unsigned v=1;  // from FPGA
     for(unsigned i=0; i<4; i++) {
       IndexRange rng(i);
-      IScalVal::create(_private->root->findByName("mmio/AmcCarrierTimingGenerator/AmcCarrierCore/AxiSy56040/OutputConfig"))->setVal(&v,1,&rng);
+      CPSW_TRY_CATCH( IScalVal::create(_private->root->findByName("mmio/AmcCarrierTimingGenerator/AmcCarrierCore/AxiSy56040/OutputConfig"))->setVal(&v,1,&rng) );
     }
   }
 
@@ -449,7 +477,7 @@ namespace TPGen {
     iseq -= nAllowEngines();
     if (iseq < nBeamEngines()) {
       IndexRange rng(iseq);
-      IScalVal::create(_private->tpg->findByName("TPGControl/BeamSeqAllowMask"))->setVal(&requiredMask,1,&rng);
+      CPSW_TRY_CATCH( IScalVal::create(_private->tpg->findByName("TPGControl/BeamSeqAllowMask"))->setVal(&requiredMask,1,&rng) );
     }
   }
 
@@ -461,7 +489,7 @@ namespace TPGen {
     iseq -= nAllowEngines();
     if (iseq < nBeamEngines()) {
       IndexRange rng(iseq);
-      IScalVal::create(_private->tpg->findByName("TPGControl/BeamSeqDestination"))->setVal(&destn,1,&rng);
+      CPSW_TRY_CATCH( IScalVal::create(_private->tpg->findByName("TPGControl/BeamSeqDestination"))->setVal(&destn,1,&rng) );
     }
   }
 
@@ -484,12 +512,12 @@ namespace TPGen {
     for(std::list<unsigned>::const_iterator it=l.begin();
 	it!=l.end(); it++)
       v |= 1ULL<<(*it);
-    SET_REG(SeqRestart,v);
+    CPSW_TRY_CATCH( SET_REG(SeqRestart,v) );
   }
 
-  unsigned TPGYaml::getDiagnosticSequence() const  { return GET_U32(DiagSeq); }
+  unsigned TPGYaml::getDiagnosticSequence() const  { unsigned u; CPSW_TRY_CATCH( u = GET_U32(DiagSeq) ); return u; }
 
-  void     TPGYaml::setDiagnosticSequence(unsigned v) { SET_U32(DiagSeq,v); }
+  void     TPGYaml::setDiagnosticSequence(unsigned v) { CPSW_TRY_CATCH( SET_U32(DiagSeq,v) ); }
 
   int  TPGYaml::startBSA            (unsigned array,
                                      unsigned nToAverage,
@@ -510,11 +538,11 @@ namespace TPGen {
 	if (avgToAcquire <= MAXACQBSA) {
           IndexRange rng(array);
           unsigned v = selection->word();
-          IScalVal::create(_private->tpg->findByName("TPGControl/BsaEventSel"))->setVal(&v,1,&rng);
+          CPSW_TRY_CATCH( IScalVal::create(_private->tpg->findByName("TPGControl/BsaEventSel"))->setVal(&v,1,&rng) );
           v = (nToAverage&0x1fff) | 
             ((maxSevr&3)<<14) |
 	    (avgToAcquire<<16);
-          IScalVal::create(_private->tpg->findByName("TPGControl/BsaStatSel"))->setVal(&v,1,&rng);
+          CPSW_TRY_CATCH( IScalVal::create(_private->tpg->findByName("TPGControl/BsaStatSel"))->setVal(&v,1,&rng) );
 	}
 	else result = -3;
       }
@@ -531,7 +559,7 @@ namespace TPGen {
   {
     IndexRange rng(array);
     unsigned v=0;
-    IScalVal::create(_private->tpg->findByName("TPGControl/BsaEventSel"))->setVal(&v,1,&rng);
+    CPSW_TRY_CATCH( IScalVal::create(_private->tpg->findByName("TPGControl/BsaEventSel"))->setVal(&v,1,&rng) );
   }
 
   void TPGYaml::queryBSA            (unsigned  array,
@@ -540,7 +568,7 @@ namespace TPGen {
   {
     IndexRange rng(array);
     unsigned v;
-    IScalVal_RO::create(_private->tpg->findByName("TPGStatus/BsaStatus"))->getVal(&v,1,&rng);
+    CPSW_TRY_CATCH( IScalVal_RO::create(_private->tpg->findByName("TPGStatus/BsaStatus"))->getVal(&v,1,&rng) );
     nToAverage   = v & 0xffff;
     avgToAcquire = v >> 16; 
   }
@@ -548,47 +576,48 @@ namespace TPGen {
   uint64_t TPGYaml::bsaComplete()
   {
     uint64_t v;
-    _private->bsaComplete->getVal(&v,1);
+    CPSW_TRY_CATCH( _private->bsaComplete->getVal(&v,1) );
     return v;
   }
 
   void TPGYaml::bsaComplete(uint64_t ack)
   {
-    SET_REG(BsaComplete, ack);
+    CPSW_TRY_CATCH( SET_REG(BsaComplete, ack) );
   }
 
   void TPGYaml::setCountInterval(unsigned v) { SET_U32S(CountIntv,v); }
   
-  unsigned TPGYaml::getPLLchanges   () const { return GET_U32S(CountPLL); }
-  unsigned TPGYaml::get186Mticks    () const { return GET_U32S(Count186M); }
-  unsigned TPGYaml::getSyncErrors   () const { return GET_U32S(CountSyncE); }
-  unsigned TPGYaml::getCountInterval() const { return GET_U32S(CountIntv); }
-  unsigned TPGYaml::getBaseRateTrigs() const { return GET_U32S(CountBRT); }
-  unsigned TPGYaml::getInputTrigs   (unsigned ch) const { return GET_U32SI(CountTrig,ch); }
-  unsigned TPGYaml::getSeqRequests  (unsigned seq) const { return GET_U32SI(CountSeq,seq); }
+  unsigned TPGYaml::getPLLchanges   () const { unsigned u; CPSW_TRY_CATCH( u = GET_U32S(CountPLL) ); return u; }
+  unsigned TPGYaml::get186Mticks    () const { unsigned u; CPSW_TRY_CATCH( u = GET_U32S(Count186M) ); return u; }
+  unsigned TPGYaml::getSyncErrors   () const { unsigned u; CPSW_TRY_CATCH( u = GET_U32S(CountSyncE) ); return u; }
+  unsigned TPGYaml::getCountInterval() const { unsigned u; CPSW_TRY_CATCH( u = GET_U32S(CountIntv) ); return u; }
+  unsigned TPGYaml::getBaseRateTrigs() const { unsigned u; CPSW_TRY_CATCH( u = GET_U32S(CountBRT) ); return u; }
+  unsigned TPGYaml::getInputTrigs   (unsigned ch) const { unsigned u; CPSW_TRY_CATCH( u = GET_U32SI(CountTrig,ch) ); return u;}
+  unsigned TPGYaml::getSeqRequests  (unsigned seq) const { unsigned u; CPSW_TRY_CATCH( u = GET_U32SI(CountSeq,seq) ); return u;}
   unsigned TPGYaml::getSeqRequests  (unsigned* array, unsigned array_size) const
   { unsigned n = array_size;
     //    const unsigned NSEQUENCES = nAllowEngines()+nBeamEngines()+nExptEngines();
     //    if (n > NSEQUENCES)
     //      n = NSEQUENCES;
-    IScalVal_RO::create(_private->tpg->findByName("TPGStatus/CountSeq"))->getVal(array,n);
+    CPSW_TRY_CATCH( IScalVal_RO::create(_private->tpg->findByName("TPGStatus/CountSeq"))->getVal(array,n) );
     return n;
   }
 
-  void     TPGYaml::lockCounters    (bool q) { SET_U32(CounterLock,(q?1:0)); }
+  void     TPGYaml::lockCounters    (bool q) { CPSW_TRY_CATCH( SET_U32(CounterLock,(q?1:0)) ); }
   void     TPGYaml::setCounter      (unsigned i, EventSelection* s)
   {
     IndexRange rng(i);
     unsigned v = s->word();
-    IScalVal::create(_private->tpg->findByName("TPGControl/CounterDef"))->setVal(&v,1,&rng);
+    CPSW_TRY_CATCH( IScalVal::create(_private->tpg->findByName("TPGControl/CounterDef"))->setVal(&v,1,&rng) );
   }
-  unsigned TPGYaml::getCounter      (unsigned i) { return GET_U32I(CounterDef,i); }
+  unsigned TPGYaml::getCounter      (unsigned i) { unsigned u; CPSW_TRY_CATCH( u = GET_U32I(CounterDef,i) ); return u; }
 
   void     TPGYaml::getMpsState     (unsigned  destination, 
                                      unsigned& latch, 
                                      unsigned& state) 
   {
-    unsigned a = GET_U8I(MpsState,destination);
+    unsigned a;
+    CPSW_TRY_CATCH( a = GET_U8I(MpsState,destination) );
     latch = a&0xf;
     state = (a>>4)&0xf;
   }
@@ -603,20 +632,20 @@ namespace TPGen {
                                        unsigned& rxFrameCount)
   {
     Path _path = _private->root->findByName("mmio/AmcCarrierTimingGenerator/ApplicationCore/TPGMps/Pgp2bAxi/");
-    IScalVal_RO::create(_path->findByName("PhyReadyRx"))->getVal(&rxRdy,1);
-    IScalVal_RO::create(_path->findByName("PhyReadyTx"))->getVal(&txRdy,1);
-    IScalVal_RO::create(_path->findByName("LocalLinkReady"))->getVal(&locLnkRdy,1);
-    IScalVal_RO::create(_path->findByName("RemoteLinkReady"))->getVal(&remLnkRdy,1);
-    IScalVal_RO::create(_path->findByName("RxClockFreq"))->getVal(&rxClkFreq,1);
-    IScalVal_RO::create(_path->findByName("TxClockFreq"))->getVal(&txClkFreq,1);
-    IScalVal_RO::create(_path->findByName("RxFrameErrCnt"))->getVal(&rxFrameErrorCount,1);
-    IScalVal_RO::create(_path->findByName("RxFrameCnt"))->getVal(&rxFrameCount,1);
+    CPSW_TRY_CATCH( IScalVal_RO::create(_path->findByName("PhyReadyRx"))->getVal(&rxRdy,1) );
+    CPSW_TRY_CATCH( IScalVal_RO::create(_path->findByName("PhyReadyTx"))->getVal(&txRdy,1) );
+    CPSW_TRY_CATCH( IScalVal_RO::create(_path->findByName("LocalLinkReady"))->getVal(&locLnkRdy,1) );
+    CPSW_TRY_CATCH( IScalVal_RO::create(_path->findByName("RemoteLinkReady"))->getVal(&remLnkRdy,1) );
+    CPSW_TRY_CATCH( IScalVal_RO::create(_path->findByName("RxClockFreq"))->getVal(&rxClkFreq,1) );
+    CPSW_TRY_CATCH( IScalVal_RO::create(_path->findByName("TxClockFreq"))->getVal(&txClkFreq,1) );
+    CPSW_TRY_CATCH( IScalVal_RO::create(_path->findByName("RxFrameErrCnt"))->getVal(&rxFrameErrorCount,1) );
+    CPSW_TRY_CATCH( IScalVal_RO::create(_path->findByName("RxFrameCnt"))->getVal(&rxFrameCount,1) );
   }
 
   void     TPGYaml::getTimingFrameRxDiag (unsigned& txClkCount)
   {
     Path _path = _private->root->findByName("mmio/AmcCarrierTimingGenerator/AmcCarrierCore/AmcCarrierTiming/TimingFrameRx/");
-    IScalVal_RO::create(_path->findByName("TxClkCount"))->getVal(&txClkCount, 1);
+    CPSW_TRY_CATCH( IScalVal_RO::create(_path->findByName("TxClkCount"))->getVal(&txClkCount, 1) );
   }
   
   Callback* TPGYaml::subscribeBSA     (unsigned bsaArray,
@@ -646,12 +675,12 @@ namespace TPGen {
 
   void TPGYaml::enableIrq    (unsigned bit, bool q)
   { unsigned v;
-    v = GET_U32(IrqControl);
+    CPSW_TRY_CATCH( v = GET_U32(IrqControl) );
     if (q)
       v |= 1<<bit;
     else
       v &= ~(1<<bit);
-    SET_U32(IrqControl,v);
+    CPSW_TRY_CATCH( SET_U32(IrqControl,v) );
   }
 
   void TPGYaml::enableSequenceIrq (bool q) 
