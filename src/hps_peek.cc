@@ -71,9 +71,6 @@ int main(int argc, char* argv[])
     case 't':
       timingMode = strtoul(optarg,NULL,0);
       break;
-    case 't':
-      timingMode = strtoul(optarg,NULL,0);
-      break;
     case 'y':
       if (strchr(optarg,',')) {
         yaml_file = strtok(optarg,",");
