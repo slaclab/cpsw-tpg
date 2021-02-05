@@ -1,4 +1,6 @@
-from evtsel import *
+#from evtsel import *
+import sys
+import argparse
 from sequser import *
 #from seq_ca_new import *
 
@@ -7,8 +9,8 @@ Prefix='TPG:SYS2:2'
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='simple exp seq setup')
-    parser.add_argument('--pv' , help="TPG pv base", default='TPG:SYS2:1')
-    parser.add_argument('--seq', help="sequence number", type=int, default=0)
+    parser.add_argument('--pv' , help="TPG pv base", default='TPG:SYS2:2')
+    parser.add_argument('--seq', help="sequence number", type=int, default=15)
     args = parser.parse_args()
 
     sync_marker = 6
@@ -33,12 +35,12 @@ if __name__ == '__main__':
         b0 = len(instrset)
         instrset.append(ControlRequest(0xc<<sh))
         instrset.append(FixedRateSync(marker=0,occ=i+1))
-        instrset.append(Branch.conditional(line=b0, counter=0, value=1))
+        instrset.append(Branch.conditional(line=b0, counter=0, value=3))
 
         b0 = len(instrset)
         instrset.append(ControlRequest(0x8<<sh))
         instrset.append(FixedRateSync(marker=0,occ=i+1))
-        instrset.append(Branch.conditional(line=b0, counter=0, value=1))
+        instrset.append(Branch.conditional(line=b0, counter=0, value=7))
 
     instrset.append(Branch.unconditional(line=0))
 

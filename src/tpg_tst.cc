@@ -31,7 +31,8 @@
 static void usage(const char* p)
 {
   printf("Usage: %s [options]\n"
-         "  -a <ip>\n",p);
+         "  -a <ip>\n"
+         "  -y <yaml file>\n",p);
   printf("%s",TPGen::usage());
 }
 

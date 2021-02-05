@@ -11,7 +11,9 @@
 #once AmcCarrierCheckout.yaml
 #include AxiVersion.yaml
 #include AxiSy56040.yaml
+#include AxilRingBuffer.yaml
 #include TimingFrameRx.yaml
+#include TPGMiniCore.yaml
 #include GthRxAlignCheck.yaml
 #include GthEyeScan.yaml
 
@@ -38,6 +40,21 @@ AmcCarrierCheckout: &AmcCarrierCheckout
       <<: *TimingFrameRx
       at:
         offset: 0x08000000
+    ##################################################
+    TPGMiniCore:
+      <<: *TPGMiniCore
+      at:
+        offset: 0x08030000
+    ##################################################
+    ring0:
+      <<: *AxilRingBuffer
+      at:
+        offset: 0x08010000
+    ##################################################
+    ring1:
+      <<: *AxilRingBuffer
+      at:
+        offset: 0x08020000
     ##################################################
     GthRxAlignCheck:
       <<: *GthRxAlignCheck

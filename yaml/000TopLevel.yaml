@@ -71,7 +71,7 @@ NetIOUDP:
        <<: *mmio
        at:
          SRP:
-           protocolVersion: SRP_UDP_V3
+           protocolVersion: SRP_UDP_V2
          UDP:
            port: 8192
          RSSI: no

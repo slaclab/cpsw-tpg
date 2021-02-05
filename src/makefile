@@ -100,4 +100,28 @@ hps_eyescan_SRCS = hps_eyescan.cc
 hps_eyescan_LIBS = $(CPSW_LIBS) hps pthread rt dl
 PROGRAMS    += hps_eyescan
 
+cryo_peek_SRCS = cryo_peek.cc
+cryo_peek_LIBS = $(CPSW_LIBS) hps pthread rt dl
+PROGRAMS    += cryo_peek
+
+tprtest_SRCS = tprtest.cc tpr.cc
+tprtest_LIBS = $(CPSW_LIBS) hps pthread rt dl
+PROGRAMS    += tprtest
+
+tpr_trig_SRCS = tpr_trig.cc tpr.cc
+tpr_trig_LIBS = hps pthread rt dl
+PROGRAMS    += tpr_trig
+
+tpr_scan_SRCS = tpr_scan.cc
+tpr_scan_LIBS = ncpsw pthread rt dl
+PROGRAMS    += tpr_scan
+
+tpr_record_SRCS = tpr_record.cc tpr.cc
+tpr_record_LIBS = ncpsw pthread rt dl
+PROGRAMS    += tpr_record
+
+rfof_stream_SRCS = rfof_stream.cc
+rfof_stream_LIBS = $(CPSW_LIBS) hps pthread rt dl
+PROGRAMS    += rfof_stream
+
 include $(CPSW_DIR)/rules.mak

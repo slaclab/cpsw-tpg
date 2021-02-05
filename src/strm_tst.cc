@@ -45,7 +45,6 @@ static void* write_thread(void* arg)
     strm->write( (uint8_t*)buf, sz);
   }
 
-
   while(1) {
     usleep(100000);
   
@@ -97,7 +96,7 @@ int main(int argc, char** argv) {
     bldr->setSRPRetryCount           (                     5 );
     //    bldr->setSRPMuxVirtualChannel    (                     0 );
     bldr->useDepack                  (                  true );
-    bldr->useRssi                    (                  true );
+    bldr->useRssi                    (                 false );
     bldr->setTDestMuxTDEST           (                 tdest );
 
     Field    irq = IField::create("irq");
@@ -109,10 +108,10 @@ int main(int argc, char** argv) {
   Stream strm = IStream::create( path->findByName("irq") );
   CTimeout         tmo(100000);
 
-  pthread_attr_t attr;
-  pthread_attr_init(&attr);
-  pthread_t rthread;
-  pthread_create(&rthread, &attr, &write_thread, (void*)&strm);
+  //  pthread_attr_t attr;
+  //  pthread_attr_init(&attr);
+  //  pthread_t rthread;
+  //  pthread_create(&rthread, &attr, &write_thread, (void*)&strm);
 
   uint8_t ibuf[256];
   int v;

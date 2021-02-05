@@ -3,6 +3,7 @@ import time
 
 fixedRates = ['929kHz','71.4kHz','10.2kHz','1.02kHz','102Hz','10.2Hz','1.02Hz']
 acRates    = ['60Hz','30Hz','10Hz','5Hz','1Hz','0.5Hz']
+f = None
 
 class Instruction(object):
 
@@ -79,21 +80,47 @@ class ControlRequest(Instruction):
     def print_(self):
         return 'ControlRequest word 0x%x'%self.args[1]
 
+class SimPv:
+    def __init__(self, name):
+        self.name = name
+
+    def get(self):
+        pass
+
+    def put(self, value):
+        f.write('caput %s '%self.name,value)
+
 class SeqUser:
-    def __init__(self, base, index):
-        prefix = base+'%02d'%index
+    def __init__(self, base, index, file=''):
+        global f
         self.index   = index
-        self.ninstr  = Pv.Pv(prefix+':INSTRCNT')
-        self.desc    = Pv.Pv(prefix+':DESCINSTRS')
-        self.instr   = Pv.Pv(prefix+':INSTRS')
-        self.idxseq  = Pv.Pv(prefix+':SEQ00IDX')
-        self.seqname = Pv.Pv(prefix+':SEQ00DESC')
-        self.idxseqr = Pv.Pv(prefix+':RMVIDX')
-        self.seqr    = Pv.Pv(prefix+':RMVSEQ')
-        self.insert  = Pv.Pv(prefix+':INS')
-        self.idxrun  = Pv.Pv(prefix+':RUNIDX')
-        self.start   = Pv.Pv(prefix+':SCHEDRESET')
-        self.reset   = Pv.Pv(prefix+':FORCERESET')
+
+        prefix = base+'%02d'%index
+        if len(file):
+            f = open(file,'w')
+            self.ninstr  = SimPv(prefix+':INSTRCNT')
+            self.desc    = SimPv(prefix+':DESCINSTRS')
+            self.instr   = SimPv(prefix+':INSTRS')
+            self.idxseq  = SimPv(prefix+':SEQ00IDX')
+            self.seqname = SimPv(prefix+':SEQ00DESC')
+            self.idxseqr = SimPv(prefix+':RMVIDX')
+            self.seqr    = SimPv(prefix+':RMVSEQ')
+            self.insert  = SimPv(prefix+':INS')
+            self.idxrun  = SimPv(prefix+':RUNIDX')
+            self.start   = SimPv(prefix+':SCHEDRESET')
+            self.reset   = SimPv(prefix+':FORCERESET')
+        else:
+            self.ninstr  = Pv.Pv(prefix+':INSTRCNT')
+            self.desc    = Pv.Pv(prefix+':DESCINSTRS')
+            self.instr   = Pv.Pv(prefix+':INSTRS')
+            self.idxseq  = Pv.Pv(prefix+':SEQ00IDX')
+            self.seqname = Pv.Pv(prefix+':SEQ00DESC')
+            self.idxseqr = Pv.Pv(prefix+':RMVIDX')
+            self.seqr    = Pv.Pv(prefix+':RMVSEQ')
+            self.insert  = Pv.Pv(prefix+':INS')
+            self.idxrun  = Pv.Pv(prefix+':RUNIDX')
+            self.start   = Pv.Pv(prefix+':SCHEDRESET')
+            self.reset   = Pv.Pv(prefix+':FORCERESET')
 
     def execute(self, title, instrset):
         self.insert.put(0)
@@ -108,6 +135,7 @@ class SeqUser:
                 self.idxseqr.put(idx)
                 self.seqr.put(1)
                 self.seqr.put(0)
+                time.sleep(1.0)
                 idx = self.idxseq.get()
         elif ridx > 1:
             print 'Removing seq %d'%ridx
@@ -125,7 +153,7 @@ class SeqUser:
 
         self.instr.put( tuple(encoding) )
 
-        time.sleep(0.1)
+        time.sleep(1.0)
 
         ninstr = self.ninstr.get()
         if ninstr != len(instrset):

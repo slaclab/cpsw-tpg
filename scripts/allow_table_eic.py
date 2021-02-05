@@ -101,28 +101,30 @@ class BasicSequence(object):
         
         self.seq = [-1]*NMpsSeq
 
+        self.prefix = prefix
         self.removeAll()
 
     def removeAll(self):
         idx = self.idxseq.get()
         try:
             while (idx>0):
-#                print 'Removing seq %d'%idx
+                self.seqr.put(0)
+                print 'Removing seq %d'%idx+' '+self.prefix
                 self.idxseqr.put(idx)
                 self.seqr.put(1)
-                self.seqr.put(0)
+                time.sleep(1.0)
                 idx = self.idxseq.get()
         except TypeError:
             pass
 
     def remove(self, ridx):
         if ridx > 0:
-            print 'Removing seq %d'%ridx
+            print 'Removing seq %d'%ridx+' '+self.prefix
             self.idxseqr.put(ridx)
             self.seqr.put(1)
             self.seqr.put(0)
 
-    def _program(self, line, sync, nreq):
+    def _program(self, line, sync, nreq, title):
 
 #        print line, sync, nreq, power
 #        print 'Program line(%d)'%line+' sync(%d)'%sync+' nreq(%d)'%nreq+' power(%d)'%power
@@ -139,7 +141,7 @@ class BasicSequence(object):
             instrset.append( Branch.conditional(1, 0, nreq-1) )
         instrset.append( Branch.unconditional(0) )
 
-        title = 'Sync[%d]'%sync
+#        title = 'Sync[%d]'%sync
 
         if False:
             print title+': line[%d]'%line
@@ -161,6 +163,7 @@ class BasicSequence(object):
         self.instr.put( tuple(encoding) )
 
         self.insert.put(1)
+        self.insert.put(0)
 
         #  Get the assigned sequence num
         idx = self.idxseq.get()
@@ -168,8 +171,8 @@ class BasicSequence(object):
         self.seq[line]=idx
         return idx
 
-    def program(self, line, sync, nreq, power):
-        return self._program(line, sync, nreq)
+    def program(self, line, sync, nreq, power, title):
+        return self._program(line, sync, nreq, title)
 
 
 class MpsSequence(BasicSequence):
@@ -185,8 +188,8 @@ class MpsSequence(BasicSequence):
             self.seqp  .append(PvW(prefix+'MPS%02dIDX'%i))
             self.pclass.append(PvW(prefix+'MPS%02dPCLASS'%i))
 
-    def program(self, line, sync, nreq, power):
-        idx = self._program(line, sync, nreq)
+    def program(self, line, sync, nreq, power, title):
+        idx = self._program(line, sync, nreq, title)
 
         #  Write MPS table entry
         self.seqp  [line].put(idx)
@@ -252,7 +255,8 @@ class TableDisplay(QtGui.QWidget):
                 pidx=seq.program(p[0],
                                  p[1],
                                  p[2],
-                                 p[3])
+                                 p[3],
+                                 p[4])
 #                print p,pidx
                 button = RateButton(p[4],self,idx,p[0],p[3])
                 layout.addWidget(button,idx+1,p[0]+1,QtCore.Qt.AlignHCenter)
@@ -493,6 +497,7 @@ if __name__ == '__main__':
     parser.add_argument('--pv' , help="TPG pv base", default='TPG:SYS2:2')
     parser.add_argument('--q', help="bunch charge", type=int, default=100)
     args = parser.parse_args()
+    Prefix = args.pv
     charge = args.q
 
     app = QtGui.QApplication([])

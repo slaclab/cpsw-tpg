@@ -1,11 +1,13 @@
-from evtsel import *
+#from evtsel import *
+import sys
+import argparse
 from sequser import *
 
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='simple exp seq setup')
-    parser.add_argument('--pv' , help="TPG pv base", default='TPG:SYS2:1')
-    parser.add_argument('--seq', help="sequence number", type=int, default=0)
+    parser.add_argument('--pv' , help="TPG pv base", default='TPG:SYS2:2')
+    parser.add_argument('--seq', help="sequence number", type=int, default=16)
     args = parser.parse_args()
 
     sync_marker = 6

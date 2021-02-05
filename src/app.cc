@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <new>
+#include <string.h>
 #include "tpg.hh"
 #include "tpg_lcls.hh"
 #include "user_sequence.hh"
@@ -228,15 +229,22 @@ int TPGen::execute(int argc, char* argv[], TPGen::TPG* p, bool lAsync)
 
   if (resync) {
     struct tm tm_s;
-    tm_s.tm_year = 1995;
+    tm_s.tm_sec  = 0;
+    tm_s.tm_min  = 0;
+    tm_s.tm_hour = 0;
+    tm_s.tm_mday = 1;
+    tm_s.tm_mon  = 0;
+    tm_s.tm_year = 90;
+    tm_s.tm_wday = 0;
+    tm_s.tm_yday = 0;
+    tm_s.tm_isdst = 0;
     time_t t0 = mktime(&tm_s);
-    timespec ts;
-    clock_gettime(CLOCK_REALTIME,&ts);
 
-    printf("now [%u] 1995 [%u]\n",unsigned(ts.tv_sec),unsigned(t0));
+    time_t ltv_sec = time(NULL);
+    time_t tv_sec = mktime(gmtime(&ltv_sec));
 
     p->setPulseID(0);
-    p->setTimestamp(ts.tv_sec-t0,ts.tv_nsec);
+    p->setTimestamp(tv_sec-t0,0);
     p->force_sync();
     p->initializeRam();
     

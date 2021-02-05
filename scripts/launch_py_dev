@@ -1,11 +1,14 @@
 #!/bin/bash
-source /afs/slac/g/lcls/epics/setup/go_epics_3-14-12-4_1-1.bash
-export LD_LIBRARY_PATH=/afs/slac/g/lcls/package/octave/octave-3.8.2/lib:/usr/X11R6/lib:/afs/slac/g/lcls/package/octave/lib/octave-3.0.2:/afs/slac/package/oracle/new/lib:/afs/slac/g/lcls/package/java/jdk1.7.0_05/jre/lib/i386:/afs/slac/g/lcls/package/java/jdk1.7.0_05/jre/lib/i386/server:/afs/slac/g/lcls/package/python/tcltk/lib:/afs/slac/g/lcls/epics/base/R3.15.5-1.0/lib/rhel6-x86_64:/afs/slac/g/lcls/epics/extensions/extensions-R3.15.5/lib/rhel6-x86_64:/afs/slac/g/lcls/tools/lib/rhel6-x86_64:/afs/slac/package/matlab/2012a/extern/lib/glnx86:${LD_LIBRARY_PATH}
+source $LCLS_ROOT/epics/setup/go_epics_3-14-12-4_1-1.bash
+export LD_LIBRARY_PATH=$LCLS_ROOT/package/octave/octave-3.8.2/lib:/usr/X11R6/lib:$LCLS_ROOT/package/octave/lib/octave-3.0.2:/afs/slac/package/oracle/new/lib:$LCLS_ROOT/package/java/jdk1.7.0_05/jre/lib/i386:$LCLS_ROOT/package/java/jdk1.7.0_05/jre/lib/i386/server:$LCLS_ROOT/package/python/tcltk/lib:$LCLS_ROOT/epics/base/R3.15.5-1.0/lib/rhel6-x86_64:$LCLS_ROOT/epics/extensions/extensions-R3.15.5/lib/rhel6-x86_64:$LCLS_ROOT/tools/lib/rhel6-x86_64:/afs/slac/package/matlab/2012a/extern/lib/glnx86:${LD_LIBRARY_PATH}
 
-#export PATH=/afs/slac/g/lcls/package/python/python2.7.4/bin:${PATH}
-#export LD_LIBRARY_PATH=/afs/slac/g/lcls/package/python2.7.4/lib:/afs/slac/g/lcls/package/python/python2.7.4/Lib:/afs/slac/g/lcls/package/octave/octave-3.8.2/lib:/usr/X11R6/lib:/afs/slac/g/lcls/package/octave/lib/octave-3.0.2:/afs/slac/package/oracle/new/lib:/afs/slac/g/lcls/package/java/jdk1.7.0_05/jre/lib/i386:/afs/slac/g/lcls/package/java/jdk1.7.0_05/jre/lib/i386/server:/afs/slac/g/lcls/package/python/tcltk/lib:/afs/slac/g/lcls/epics/base/R3.15.5-1.0/lib/rhel6-x86_64:/afs/slac/g/lcls/epics/extensions/extensions-R3.15.5/lib/rhel6-x86_64:/afs/slac/g/lcls/tools/lib/rhel6-x86_64:/afs/slac/package/matlab/2012a/extern/lib/glnx86
+#export PATH=$LCLS_ROOT/package/python/python2.7.4/bin:${PATH}
+#export LD_LIBRARY_PATH=$LCLS_ROOT/package/python2.7.4/lib:$LCLS_ROOT/package/python/python2.7.4/Lib:$LCLS_ROOT/package/octave/octave-3.8.2/lib:/usr/X11R6/lib:$LCLS_ROOT/package/octave/lib/octave-3.0.2:/afs/slac/package/oracle/new/lib:$LCLS_ROOT/package/java/jdk1.7.0_05/jre/lib/i386:$LCLS_ROOT/package/java/jdk1.7.0_05/jre/lib/i386/server:$LCLS_ROOT/package/python/tcltk/lib:$LCLS_ROOT/epics/base/R3.15.5-1.0/lib/rhel6-x86_64:$LCLS_ROOT/epics/extensions/extensions-R3.15.5/lib/rhel6-x86_64:$LCLS_ROOT/tools/lib/rhel6-x86_64:/afs/slac/package/matlab/2012a/extern/lib/glnx86
 #export EPICS_CA_SERVER_PORT=5066
 #export EPICS_CA_REPEATER_PORT=5067
 #export EPICS_CA_ADDR_LIST=10.0.3.255
+
+export PATH=$LCLS_ROOT/package/python/python2.7.9/bin:${PATH}
+export LD_LIBRARY_PATH=$LCLS_ROOT/package/python2.7.9/lib:${LD_LIBRARY_PATH}
 
 python "$@"
