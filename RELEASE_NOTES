@@ -1,3 +1,10 @@
+R1.5.0      03/23/2021    Matt Weaver
+            UPgrade conditional from 8 bits to 12 bits
+            Move tpr_record to other package
+            Added some tpr utilites and some fixes to sequence programming scripts
+            Add timing mode selection to hps_peak
+            Updates to test scripts during EIC/MPS testing
+
 R1.4.1      11/30/2020    Kukhee Kim
             add exception handloing for individual register access
 
