@@ -41,8 +41,14 @@ public:
   {
     unsigned v = _pclass[d/4];
     v &= ~((0xff)<<(8*(d&3)));
-    v |= (c&0xf)<<(8*(d&3));
+    v |= (c&0xff)<<(8*(d&3));
     _pclass[d/4] = v;
+  }
+  void dump() {
+    printf("csr: %08x\n",unsigned(_csr));
+    printf("tag: %08x\n",unsigned(_tag_ts));
+    printf("pc0: %08x\n",unsigned(_pclass[0]));
+    printf("pc1: %08x\n",unsigned(_pclass[1]));
   }
 private:
   Pds::Cphw::Reg _csr;
@@ -122,6 +128,8 @@ int main(int argc, char** argv) {
   for(unsigned i=0; i<16; i++)
     printf("  c%u[%x]", i, pclass[i]);
   printf("\n");
-  
+
+  p->dump();
+
   return 0;
 }

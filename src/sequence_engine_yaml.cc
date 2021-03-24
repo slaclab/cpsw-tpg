@@ -137,7 +137,7 @@ static unsigned _verbose=0;
    --    (31:29)="000"  Branch -- shifted down 1
    --       (28:27)=counter
    --       (24)=conditional
-   --       (23:16)=test_value
+   --       (23:12)=test_value
    --       (10:0)=address
    --    (31:29)="100" Request
    --       (15:0)  Value
@@ -157,8 +157,8 @@ static inline uint32_t _word(const ACRateSync& i)
 
 static inline uint32_t _word(const Branch& i, unsigned a)
 {
-  return (i.test&0xff)==0 ? (a&0x3ff) :
-    ((unsigned(i.counter)&0x3)<<27) | (1<<24) | ((i.test&0xff)<<16) | (a&0x3ff);
+  return (i.test&0xff)==0 ? (a) :
+    ((unsigned(i.counter)&0x3)<<27) | (1<<24) | ((i.test&0xfff)<<12) | (a);
 }
 
 static inline uint32_t _word(const Checkpoint& i)
@@ -331,21 +331,22 @@ int  SequenceEngineYaml::insertSequence(std::vector<Instruction*>& seq)
 	  }
 	} break;
       case Instruction::Fixed:
-	_private->_ram[addr++] =
-	  _word(*static_cast<const FixedRateSync*>(seq[i])); 
+        _private->_ram[addr++] = 
+          _word(*static_cast<const FixedRateSync*>(seq[i])); 
 	break;
       case Instruction::AC:
-	_private->_ram[addr++] = _word(*static_cast<const ACRateSync*>(seq[i]));
+        _private->_ram[addr++] = 
+          _word(*static_cast<const ACRateSync*>(seq[i]));
 	break;
       case Instruction::Check:
 	{ const Checkpoint& instr = 
 	    *static_cast<const Checkpoint*>(seq[i]);
 	  _private->_callback[addr] = instr.callback();
-	  _private->_ram[addr++] = _word(instr); }
+          _private->_ram[addr++] = _word(instr); }
 	break;
       case Instruction::Request:
-	_private->_ram[addr++] =
-	  _word(*static_cast<const ControlRequest*>(seq[i]));
+        _private->_ram[addr++] =
+          _word(*static_cast<const ControlRequest*>(seq[i]));
         break;
       default:
 	break;
