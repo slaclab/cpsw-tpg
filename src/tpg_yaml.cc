@@ -288,6 +288,21 @@ namespace TPGen {
   void TPGYaml::loadDivisors()
   { CPSW_TRY_CATCH( SET_U32(RateReload,1) ); }
 
+
+  void TPGYaml::setBeamCharge(unsigned v)
+  { CPSW_TRY_CATCH( SET_REG(BeamCharge, v)); }
+
+  void TPGYaml::overrideBeamCharge(bool t)
+  {
+    unsigned zero(0), one(1);
+
+    if(t) {
+        CPSW_TRY_CATCH( SET_REG(BeamChargeOverride, one));
+    } else {
+        CPSW_TRY_CATCH( SET_REG(BeamChargeOverride, zero));
+    }
+  }
+
   void TPGYaml::initializeRam()
   {
     const uint64_t BlockMask = (0x1ULL<<12)-1;  // Buffers must be in blocks of 4kB

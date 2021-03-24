@@ -42,6 +42,8 @@ namespace TPGen {
     void     setACDivisors   (const std::vector<unsigned>&);
     void     setFixedDivisors(const std::vector<unsigned>&);
     void     loadDivisors    ();
+    void     setBeamCharge(unsigned v);
+    void     overrideBeamCharge(bool);
     void     force_sync();
     void     reset_xbar();
     void     initializeRam();
