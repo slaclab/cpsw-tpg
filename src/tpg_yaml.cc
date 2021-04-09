@@ -175,6 +175,8 @@ namespace TPGen {
 
     if (initialize)
       initializeRam();
+
+    reset_jesdRx();
   }
 
   TPGYaml::~TPGYaml() 
@@ -482,6 +484,13 @@ namespace TPGen {
       IndexRange rng(i);
       CPSW_TRY_CATCH( IScalVal::create(_private->root->findByName("mmio/AmcCarrierTimingGenerator/AmcCarrierCore/AxiSy56040/OutputConfig"))->setVal(&v,1,&rng) );
     }
+  }
+
+  void TPGYaml::reset_jesdRx()
+  {
+      unsigned zero(0), one(1);
+      CPSW_TRY_CATCH( IScalVal::create(_private->root->findByName("mmio/AmcCarrierTimingGenerator/ApplicationCore/AppTopJesd/JesdRx/ResetGTs"))->setVal(one));
+      CPSW_TRY_CATCH( IScalVal::create(_private->root->findByName("mmio/AmcCarrierTimingGenerator/ApplicationCore/AppTopJesd/JesdRx/ResetGTs"))->setVal(zero));
   }
 
   void TPGYaml::setSequenceRequired(unsigned iseq, unsigned requiredMask) 

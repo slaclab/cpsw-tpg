@@ -46,6 +46,7 @@ namespace TPGen {
     void     overrideBeamCharge(bool);
     void     force_sync();
     void     reset_xbar();
+    void     reset_jesdRx();
     void     initializeRam();
     void     acquireHistoryBuffers (bool);
     void     clearHistoryBuffers   (unsigned);
