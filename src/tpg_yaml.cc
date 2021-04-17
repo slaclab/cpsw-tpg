@@ -671,6 +671,18 @@ namespace TPGen {
     Path _path = _private->root->findByName("mmio/AmcCarrierTimingGenerator/AmcCarrierCore/AmcCarrierTiming/TimingFrameRx/");
     CPSW_TRY_CATCH( IScalVal_RO::create(_path->findByName("TxClkCount"))->getVal(&txClkCount, 1) );
   }
+
+  void     TPGYaml::getClockPLLDiag(unsigned& locked,
+                                    unsigned& refClockLost,
+                                    unsigned& lockCount,
+                                    unsigned& refClockLostCount)
+  {
+      CPSW_TRY_CATCH( IScalVal_RO::create(_private->root->findByName("mmio/AmcCarrierTimingGenerator/AmcCarrierCore/AmcCarrierTiming/MonitorCpll/Locked"))->getVal(&locked, 1));
+      CPSW_TRY_CATCH( IScalVal_RO::create(_private->root->findByName("mmio/AmcCarrierTimingGenerator/AmcCarrierCore/AmcCarrierTiming/MonitorCpll/RefclkLost"))->getVal(&refClockLost, 1));
+      CPSW_TRY_CATCH( IScalVal_RO::create(_private->root->findByName("mmio/AmcCarrierTimingGenerator/AmcCarrierCore/AmcCarrierTiming/MonitorCpll/LockCounts"))->getVal(&lockCount, 1));
+      CPSW_TRY_CATCH( IScalVal_RO::create(_private->root->findByName("mmio/AmcCarrierTimingGenerator/AmcCarrierCore/AmcCarrierTiming/MonitorCpll/RefclkLostCounts"))->getVal(&refClockLostCount, 1));
+  }
+
   
   Callback* TPGYaml::subscribeBSA     (unsigned bsaArray,
 					  Callback* cb)

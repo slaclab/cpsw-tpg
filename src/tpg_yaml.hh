@@ -113,6 +113,10 @@ namespace TPGen {
                               unsigned& rxFrameErrorCount,
                               unsigned& rxFrameCount);
     void     getTimingFrameRxDiag(unsigned& txClkCount);
+    void     getClockPLLDiag(unsigned& locked,
+                             unsigned& refClokLost,
+                             unsigned& lockedCount,
+                             unsigned& refClockLostCount);
 
     //  Power line sampling ADC
     void     initADC         ();
