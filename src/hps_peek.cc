@@ -23,7 +23,8 @@ void usage(const char* p) {
   printf("         -D Dump framed timing\n");
   printf("         -s Dump stats\n");
   printf("         -S <secs>  Dump stats over seconds\n");
-  printf("         -t <value> Set timingMode/clkSel\n");
+  printf("         -t <value> Set clkSel\n");
+  printf("         -T <value> Set timingMode (track clkSel=-1)\n");
   printf("         -P <value> set polarity\n");
   printf("         -X <output>,<value> set xbar output\n");
   printf("         -r reset FPGA\n");
@@ -44,12 +45,13 @@ int main(int argc, char* argv[])
   const char* yaml_path = "mmio/AmcCarrierCheckout";
   int polarity = -1;
   int xbar_o =-1, xbar_v = -1;
-  int timingMode = -1;
+  int clkMode = -1;
+  int timingMode = -2;
   const char* endptr;
   bool lreset = false;
   bool lreload = false;
 
-  while ( (c=getopt( argc, argv, "a:dDP:X:hsS:t:y:rR")) != EOF ) {
+  while ( (c=getopt( argc, argv, "a:dDP:X:hsS:t:T:y:rR")) != EOF ) {
     switch(c) {
     case 'a':
       ip = optarg;
@@ -69,7 +71,10 @@ int main(int argc, char* argv[])
       dumpStatsSecs = strtoul(optarg,NULL,0);
       break;
     case 't':
-      timingMode = strtoul(optarg,NULL,0);
+      clkMode    = strtoul(optarg,NULL,0);
+      break;
+    case 'T':
+      timingMode = atoi(optarg);
       break;
     case 'y':
       if (strchr(optarg,',')) {
@@ -125,10 +130,24 @@ int main(int argc, char* argv[])
   if (polarity>=0)
     t->setPolarity(polarity);
 
-  if (timingMode>=0) {
-    IScalVal::create(t->_timingRx->findByName("ClkSel"))->setVal((uint32_t*)&timingMode);
+  if (clkMode>=0) {
+    IScalVal::create(t->_timingRx->findByName("ClkSel"))->setVal((uint32_t*)&clkMode);
     uint32_t v;
     IScalVal::create(t->_timingRx->findByName("ClkSel"))->getVal(&v);
+    printf("Clock mode = %u\n",v);
+  }
+    
+  if (timingMode==-1) {
+    uint32_t enable=0;
+    IScalVal::create(t->_timingRx->findByName("ModeSelEn"))->setVal((uint32_t*)&enable);
+    printf("Timing mode disabled\n");
+  }
+  else if (timingMode>=0) {
+    IScalVal::create(t->_timingRx->findByName("ModeSel"))->setVal((uint32_t*)&timingMode);
+    uint32_t enable=1;
+    IScalVal::create(t->_timingRx->findByName("ModeSelEn"))->setVal((uint32_t*)&enable);
+    uint32_t v;
+    IScalVal::create(t->_timingRx->findByName("ModeSel"))->getVal(&v);
     printf("Timing mode = %u\n",v);
   }
     

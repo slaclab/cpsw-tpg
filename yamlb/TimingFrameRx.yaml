@@ -171,6 +171,40 @@ TimingFrameRx: &TimingFrameRx
       mode: RO
       description: Version check error
     #########################################################
+    ModeSel:
+      at:
+        offset: 0x0021
+      class: IntField
+      name: ModeSel
+      sizeBits: 1
+      lsBit: 1
+      mode: RW
+      enums:
+        - name: Lcls1Protocol
+          class: Enum
+          value: 0
+        - name: Lcls2Protocol
+          class: Enum
+          value: 1
+      description: LCLS2 timing mode select
+    #########################################################
+    ModeSelEn:
+      at:
+        offset: 0x0021
+      class: IntField
+      name: ModeSelEn
+      sizeBits: 1
+      lsBit: 2
+      mode: RW
+      enums:
+        - name: UseClkSel
+          class: Enum
+          value: 0
+        - name: UseModeSel
+          class: Enum
+          value: 1
+      description: Enable separate mode select
+    #########################################################
     MsgDelay:
       at:
         offset: 0x0024

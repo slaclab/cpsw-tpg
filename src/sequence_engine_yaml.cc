@@ -253,6 +253,7 @@ int  SequenceEngineYaml::insertSequence(std::vector<Instruction*>& seq)
       if (seq[i]->instr()==Instruction::Request) {
         const ControlRequest* request = static_cast<const ControlRequest*>(seq[i]);
         if (request->request()!=_private->_request_type)
+          printf("Incorrect request type in sequence for this engine\n");
           rval=-1;
       }
     }
@@ -289,6 +290,7 @@ int  SequenceEngineYaml::insertSequence(std::vector<Instruction*>& seq)
 	addr = it->first+it->second.size;
       }
       if (best_size==INT_MAX) {
+	printf("No space available in BRAM\n");
 	rval=-1;  // no space available in BRAM
 	break;
       }
@@ -300,6 +302,7 @@ int  SequenceEngineYaml::insertSequence(std::vector<Instruction*>& seq)
 
     //  Cache instruction vector, start address (reserve memory)
     if (_private->_indices == -1ULL) {
+      printf("All subsequence indices exhausted\n");
       rval=-2;
       break;
     }

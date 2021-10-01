@@ -53,18 +53,22 @@ static Path build(const char* ip, unsigned addr)
 static void usage(const char* p)
 {
   printf("Usage: %s [options]\n"
-         "  -a <ip> -r <addr>\n",p);
+         "  -a <ip> -r <addr>[,value] -s <script>\n",p);
 }
 
 int main(int argc, char* argv[])
 {
   const char* ip = "192.168.2.10";
+  const char* script = 0;
   unsigned addr = 0;
+  bool lvalue = false;
+  unsigned value;
+  char* endptr;
 
   opterr = 0;
 
   char opts[32];
-  sprintf(opts,"a:r:h");
+  sprintf(opts,"a:r:s:h");
 
   int c;
   while( (c=getopt(argc,argv,opts))!=-1 ) {
@@ -72,8 +76,15 @@ int main(int argc, char* argv[])
     case 'a':
       ip = optarg;
       break;
+    case 's':
+      script = optarg;
+      break;
     case 'r':
-      addr = strtoul(optarg,NULL,0);
+      addr = strtoul(optarg,&endptr,0);
+      if (*endptr==',') {
+        lvalue = true;
+        value = strtoul(endptr+1,&endptr,0);
+      }
       break;
     case 'h':
       usage(argv[0]); return 1;
@@ -84,9 +95,18 @@ int main(int argc, char* argv[])
 
   Path path = build(ip, addr);
 
+  if (lvalue) { // read, write
+    unsigned v;
+    IScalVal::create(path->findByName("mmio/reg"))->getVal(&v,1);
+    printf("[%08x] %08x\n",addr,v);
+
+    IScalVal::create(path->findByName("mmio/reg"))->setVal(&value,1);
+    printf("[%08x]=%08x\n",addr,value);
+  }
+
   unsigned v;
   IScalVal::create(path->findByName("mmio/reg"))->getVal(&v,1);
   printf("[%08x] %08x\n",addr,v);
-  
+
   return 0;
 }
