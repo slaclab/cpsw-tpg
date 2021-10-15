@@ -326,7 +326,10 @@ int  SequenceEngineYaml::insertSequence(std::vector<Instruction*>& seq)
       case Instruction::Branch:
 	{ const Branch& instr = *static_cast<const Branch*>(seq[i]);
 	  int jumpto = instr.address;
-	  if (jumpto > int(seq.size())) rval=-3;
+	  if (jumpto > int(seq.size())) {
+              printf("Branch jumps outside of sequence\n");
+              rval=-3;
+          }
 	  else if (jumpto >= 0) {
 	    unsigned jaddr = 0;
 	    for(int j=0; j<jumpto; j++)
