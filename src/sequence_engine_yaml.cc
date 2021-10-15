@@ -252,9 +252,10 @@ int  SequenceEngineYaml::insertSequence(std::vector<Instruction*>& seq)
     for(unsigned i=0; i<seq.size(); i++) {
       if (seq[i]->instr()==Instruction::Request) {
         const ControlRequest* request = static_cast<const ControlRequest*>(seq[i]);
-        if (request->request()!=_private->_request_type)
+        if (request->request()!=_private->_request_type) {
           printf("Incorrect request type in sequence for this engine\n");
           rval=-1;
+        }
       }
     }
 
