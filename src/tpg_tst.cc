@@ -17,6 +17,7 @@
 #include "app.hh"
 #include "tpg_cpsw.hh"
 #include "tpg_yaml.hh"
+#include "sequence_engine_yaml.hh"
 #include <string.h>
 #include <arpa/inet.h>
 #include <stdio.h>
@@ -40,11 +41,12 @@ int main(int argc, char* argv[])
 {
   const char* ip = "192.168.2.10";
   const char* yaml = 0;
+  unsigned verbosity = 0;
 
   opterr = 0;
 
   char opts[32];
-  sprintf(opts,"a:y:h%s",TPGen::opts());
+  sprintf(opts,"a:y:vh%s",TPGen::opts());
 
   int c;
   while( (c=getopt(argc,argv,opts))!=-1 ) {
@@ -55,6 +57,9 @@ int main(int argc, char* argv[])
     case 'y':
       yaml = optarg;
       break;
+    case 'v':
+      verbosity++;
+      break;
     case 'h':
       usage(argv[0]); return 1;
     default:
@@ -64,6 +69,7 @@ int main(int argc, char* argv[])
 
   TPGen::TPG* p;
   if (yaml) {
+    TPGen::SequenceEngineYaml::verbosity(verbosity);
     IYamlFixup* fixup = new Cphw::IpAddrFixup(ip);
     Path path = IPath::loadYamlFile(yaml,"NetIODev",0,fixup);
     p = new TPGen::TPGYaml(path);

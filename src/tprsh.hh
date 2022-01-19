@@ -1,7 +1,7 @@
 #ifndef TPRSH_HH
 #define TPRSH_HH
 
-#define MOD_SHARED 12
+#define MOD_SHARED 14
 #define MAX_TPR_ALLQ (32*1024)
 #define MAX_TPR_BSAQ  1024
 #define MSG_SIZE      32
@@ -13,23 +13,23 @@ namespace Tpr {
 
   class TprEntry {
   public:
-    uint32_t word[MSG_SIZE];
+    volatile uint32_t word[MSG_SIZE];
   };
 
   class TprQIndex {
   public:
-    long long idx[MAX_TPR_ALLQ];
+    volatile long long idx[MAX_TPR_ALLQ];
   };
 
   class TprQueues {
   public:
-    TprEntry         allq  [MAX_TPR_ALLQ];
-    TprEntry         bsaq  [MAX_TPR_BSAQ];
-    TprQIndex        allrp [MOD_SHARED]; // indices into allq
-    long long        allwp [MOD_SHARED]; // write pointer into allrp
-    long long        bsawp;              // write pointer into bsaq
-    long long        gwp;
-    int              fifofull;
+    TprEntry  allq  [MAX_TPR_ALLQ];
+    TprEntry  bsaq  [MAX_TPR_BSAQ];
+    TprQIndex allrp [MOD_SHARED]; // indices into allq
+    volatile long long allwp [MOD_SHARED]; // write pointer into allrp
+    volatile long long bsawp;
+    volatile long long gwp;
+    volatile int       fifofull;
   };
 };
 

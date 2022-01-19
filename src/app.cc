@@ -115,7 +115,7 @@ static unsigned next_ul(unsigned def, char*& endPtr)
   return (endPtr==p+1) ? def : v;
 }
 
-static const char* _opts = "nN:r:RSI:X:b:B:s:E:Mm:D:C:c:e:";
+static const char* _opts = "nN:r:RSI:X:b:B:s:E:Mm:D:C:c:e:q:";
 
 static const char* _usage = "  -b <bsaRate,nToAvg,nToAcq,array>\n  -n (notify)\n  -r sequence rate marker(0-9)\n  -s <seconds> (sleep before dumping fifo)\n  -B <TPFifo bit,select>\n  -I count_interval\n  -N seqfifo reads\n  -R (reset rate)\n  -S (force Sync)\n  -X rcvr reads\n  -E <energy0,energy1,energy2,energy3>\n  -M (manual fault)\n  -m <buffer> (clear fault)\n  -D <diagnostic sequence> -C <ns,num,den>\n";
 
@@ -130,6 +130,13 @@ const char* TPGen::opts() { return _opts; }
 
 int TPGen::execute(int argc, char* argv[], TPGen::TPG* p, bool lAsync)
 {
+  std::vector<Instruction*> hxu_seq;
+  hxu_seq.push_back(new FixedRateSync(2,1));
+  hxu_seq.push_back(new BeamRequest(1));
+  hxu_seq.push_back(new Branch(0));
+  //  p->engine(InjectorEngine).insertSequence(hxu_seq);
+  //  p->engine(InjectorEngine).insertSequence(hxu_seq);
+
   int rate  = -1;
   int nseqfifo = 100;
   unsigned countInterval = 0;
@@ -152,6 +159,9 @@ int TPGen::execute(int argc, char* argv[], TPGen::TPG* p, bool lAsync)
   int ns=-1, num=-1, den=-1;
   int expSeq=-1;
   int counter=-1, counterMask=-1;
+  unsigned chg = 1;
+
+  p->engine(InjectorEngine).insertSequence(hxu_seq);
   
   char* endPtr;
   int c;
@@ -201,6 +211,9 @@ int TPGen::execute(int argc, char* argv[], TPGen::TPG* p, bool lAsync)
     case 'N':
       nseqfifo = strtoul(optarg,NULL,0);
       break;
+    case 'q':
+      chg = strtoul(optarg,NULL,0);
+      break;
     case 'r':
       rate = strtoul(optarg,NULL,0);
       break;
@@ -226,6 +239,8 @@ int TPGen::execute(int argc, char* argv[], TPGen::TPG* p, bool lAsync)
       break;
     }
   }
+
+  p->engine(InjectorEngine).insertSequence(hxu_seq);
 
   if (resync) {
     struct tm tm_s;
@@ -285,155 +300,180 @@ int TPGen::execute(int argc, char* argv[], TPGen::TPG* p, bool lAsync)
   if (counter>=0)
     p->setCounter(counter, new FixedRateSelect(0,counterMask));
 
-  if (expSeq>=0) {
-    unsigned istart=0;
-    unsigned i;
-    std::vector<Instruction*> hxu_seq;
-    hxu_seq.push_back(new FixedRateSync(0,1));
-    hxu_seq.push_back(new ExptRequest(0xffff));
-    hxu_seq.push_back(new Branch(istart));
+  do {
+    if (expSeq>=0) {
+      unsigned istart=0;
+      unsigned i;
+      std::vector<Instruction*> seq;
+      seq.push_back(new FixedRateSync(0,1));
+      seq.push_back(new ExptRequest(0xffff));
+      seq.push_back(new Branch(istart));
 
-    printf("insertSeq\n");
-    int iseq0 = p->engine(expSeq).insertSequence(hxu_seq);
-    if (iseq0<0)
-      printf("Expseq [%d] insertSequence failed: %d\n",expSeq,iseq0);
+      printf("insertSeq\n");
+      int iseq0 = p->engine(expSeq).insertSequence(seq);
+      if (iseq0<0)
+        printf("Expseq [%d] insertSequence failed: %d\n",expSeq,iseq0);
     
-    printf("--ExpSeq sequence [%u] %d --\n", expSeq, iseq0);
-    p->engine(expSeq).dump();
+      printf("--ExpSeq sequence [%u] %d --\n", expSeq, iseq0);
+      p->engine(expSeq).dump();
 
-    p->engine(expSeq).setAddress(iseq0,istart);
+      p->engine(expSeq).setAddress(iseq0,istart);
 
-    std::list<unsigned> resetEngines;
-    resetEngines.push_back(expSeq);
-    p->resetSequences(resetEngines);
-  }
+      std::list<unsigned> resetEngines;
+      resetEngines.push_back(expSeq);
+      p->resetSequences(resetEngines);
+    }
 
-  if (rate>=0) {
+    {
+      //
+      //  Simple 1Hz rate with fixed charge
+      //
+      printf("insertSeq\n");
+      int iseq0 = p->engine(InjectorEngine).insertSequence(hxu_seq);
+      if (iseq0<0)
+        printf("Injector insertSequence failed: %d\n",iseq0);
+      printf("insertSeq %d\n",iseq0);
+    
+      printf("--Injector sequence [%u]--\n", InjectorEngine);
+      p->engine(InjectorEngine).dump();
+
+      unsigned istart=0;
+      p->engine(InjectorEngine).setAddress(iseq0,istart);
+
+      std::list<unsigned> resetEngines;
+      resetEngines.push_back(InjectorEngine);
+      p->resetSequences(resetEngines);
+      break;
+    }
+
+    if (rate>=0) {
+
 #if 0
-    //
-    //  Set kicker controls
-    //
-    p->setDestinationControl(Injector,0x100);
-    p->setDestinationControl(DiagLine,0x040);
-    p->setDestinationControl(D10     ,0x008);
+      //
+      //  Set kicker controls
+      //
+      p->setDestinationControl(Injector,0x100);
+      p->setDestinationControl(DiagLine,0x040);
+      p->setDestinationControl(D10     ,0x008);
 #endif
-    //  
-    //  Generate two competing sequences
-    //
-    unsigned istart=0;
-    unsigned i;
-    std::vector<Instruction*> hxu_seq;
+      //  
+      //  Generate two competing sequences
+      //
+      unsigned istart=0;
+      unsigned i;
+      std::vector<Instruction*> hxu_seq;
 #if 0
-    hxu_seq.push_back(new FixedRateSync(4,1));
-    if (notify)  
-      hxu_seq.push_back(new Checkpoint(new BeamCheckpoint(Injector)));
-    i = hxu_seq.size();
-    hxu_seq.push_back(new FixedRateSync(2,2));
-    hxu_seq.push_back(new BeamRequest(1));
-    hxu_seq.push_back(new FixedRateSync(2,2));
-    hxu_seq.push_back(new BeamRequest(1));
-    hxu_seq.push_back(new FixedRateSync(0,1));
-    hxu_seq.push_back(new BeamRequest(1));
-    hxu_seq.push_back(new Branch(i+4,ctrA,6));
-    hxu_seq.push_back(new Branch(i+2,ctrB,3));
-    hxu_seq.push_back(new FixedRateSync(3,2));
-    hxu_seq.push_back(new Branch(i  ,ctrC,2));
-    hxu_seq.push_back(new Branch(istart));
+      hxu_seq.push_back(new FixedRateSync(4,1));
+      if (notify)  
+        hxu_seq.push_back(new Checkpoint(new BeamCheckpoint(Injector)));
+      i = hxu_seq.size();
+      hxu_seq.push_back(new FixedRateSync(2,2));
+      hxu_seq.push_back(new BeamRequest(1));
+      hxu_seq.push_back(new FixedRateSync(2,2));
+      hxu_seq.push_back(new BeamRequest(1));
+      hxu_seq.push_back(new FixedRateSync(0,1));
+      hxu_seq.push_back(new BeamRequest(1));
+      hxu_seq.push_back(new Branch(i+4,ctrA,6));
+      hxu_seq.push_back(new Branch(i+2,ctrB,3));
+      hxu_seq.push_back(new FixedRateSync(3,2));
+      hxu_seq.push_back(new Branch(i  ,ctrC,2));
+      hxu_seq.push_back(new Branch(istart));
 #else
-    hxu_seq.push_back(new FixedRateSync(rate,4));
-    hxu_seq.push_back(new BeamRequest(1));
-    hxu_seq.push_back(new Branch(istart,ctrA,250));
-    hxu_seq.push_back(new Branch(istart,ctrB,100));
-    hxu_seq.push_back(new Checkpoint(new BeamCheckpoint(Injector)));
-    hxu_seq.push_back(new Branch(istart));
+      hxu_seq.push_back(new FixedRateSync(rate,4));
+      hxu_seq.push_back(new BeamRequest(1));
+      hxu_seq.push_back(new Branch(istart,ctrA,250));
+      hxu_seq.push_back(new Branch(istart,ctrB,100));
+      hxu_seq.push_back(new Checkpoint(new BeamCheckpoint(Injector)));
+      hxu_seq.push_back(new Branch(istart));
 #endif
 
-    std::vector<Instruction*> sxu_seq;
-    /*
-    sxu_seq.push_back(new FixedRateSync(3,2));
-    if (notify)  
-      sxu_seq.push_back(new Checkpoint(new BeamCheckpoint(DiagLine)));
-    sxu_seq.push_back(new FixedRateSync(2,5));
-    i = sxu_seq.size();
-    sxu_seq.push_back(new FixedRateSync(0,1));
-    sxu_seq.push_back(new BeamRequest(6));
-    sxu_seq.push_back(new Branch(i,ctrA,5));
-    sxu_seq.push_back(new Branch(istart));
-    */
-    sxu_seq.push_back(new FixedRateSync(rate,1));
-    sxu_seq.push_back(new BeamRequest(6));
-    sxu_seq.push_back(new FixedRateSync(rate,2));
-    sxu_seq.push_back(new BeamRequest(6));
-    sxu_seq.push_back(new Branch(istart));
+      std::vector<Instruction*> sxu_seq;
+      /*
+        sxu_seq.push_back(new FixedRateSync(3,2));
+        if (notify)  
+        sxu_seq.push_back(new Checkpoint(new BeamCheckpoint(DiagLine)));
+        sxu_seq.push_back(new FixedRateSync(2,5));
+        i = sxu_seq.size();
+        sxu_seq.push_back(new FixedRateSync(0,1));
+        sxu_seq.push_back(new BeamRequest(6));
+        sxu_seq.push_back(new Branch(i,ctrA,5));
+        sxu_seq.push_back(new Branch(istart));
+      */
+      sxu_seq.push_back(new FixedRateSync(rate,1));
+      sxu_seq.push_back(new BeamRequest(6));
+      sxu_seq.push_back(new FixedRateSync(rate,2));
+      sxu_seq.push_back(new BeamRequest(6));
+      sxu_seq.push_back(new Branch(istart));
 
-    if (InjectorEngine>15) {
-      p->setSequenceRequired   (InjectorEngine,0);
-      p->setSequenceDestination(InjectorEngine,Injector);
-    }
+      if (InjectorEngine>15) {
+        p->setSequenceRequired   (InjectorEngine,0);
+        p->setSequenceDestination(InjectorEngine,Injector);
+      }
 
-    printf("insertSeq\n");
-    int iseq0 = p->engine(InjectorEngine).insertSequence(hxu_seq);
-    if (iseq0<0)
-      printf("Injector insertSequence failed: %d\n",iseq0);
+      printf("insertSeq\n");
+      int iseq0 = p->engine(InjectorEngine).insertSequence(hxu_seq);
+      if (iseq0<0)
+        printf("Injector insertSequence failed: %d\n",iseq0);
     
-    printf("--Injector sequence [%u]--\n", InjectorEngine);
-    p->engine(InjectorEngine).dump();
+      printf("--Injector sequence [%u]--\n", InjectorEngine);
+      p->engine(InjectorEngine).dump();
 
-    if (DiagLineEngine>15) {
-      p->setSequenceRequired   (DiagLineEngine,0);
-      p->setSequenceDestination(DiagLineEngine,DiagLine);
+      if (DiagLineEngine>15) {
+        p->setSequenceRequired   (DiagLineEngine,0);
+        p->setSequenceDestination(DiagLineEngine,DiagLine);
+      }
+
+      int iseq1 = p->engine(DiagLineEngine).insertSequence(sxu_seq);
+      if (iseq1<0)
+        printf("DiagLine insertSequence failed: %d\n",iseq0);
+
+      printf("--DiagLine sequence [%u]--\n", DiagLineEngine);
+      p->engine(DiagLineEngine).dump();
+
+      if (D10Engine>15) {
+        p->setSequenceRequired   (D10Engine,0);
+        p->setSequenceDestination(D10Engine,D10);
+      }
+
+      std::vector<Instruction*> d10_seq;
+      d10_seq.push_back(new FixedRateSync(rate,1));
+      d10_seq.push_back(new BeamRequest(9));
+      d10_seq.push_back(new Branch(istart));
+
+      int iseq2 = p->engine(D10Engine).insertSequence(d10_seq);
+      if (iseq2<0)
+        printf("D10 insertSequence failed: %d\n",iseq2);
+
+      printf("--D10 sequence [%u]--\n", D10Engine);
+      p->engine(D10Engine).dump();
+
+      //
+      //
+      //  Launch sequences: (1) set reset addresses, (2) reset
+      //
+      p->engine(InjectorEngine).setAddress(iseq0,istart);
+      p->engine(DiagLineEngine).setAddress(iseq1,istart);
+      p->engine(D10Engine).setAddress(iseq2,istart);
+
+      std::list<unsigned> resetEngines;
+      resetEngines.push_back(InjectorEngine);
+      resetEngines.push_back(DiagLineEngine);
+      resetEngines.push_back(D10Engine);
+      p->resetSequences(resetEngines);
     }
+    else if (reset_rate) {
+      //  Stop the sequences
+      p->engine(InjectorEngine).setAddress(0,0);
+      p->engine(DiagLineEngine).setAddress(0,0);
+      p->engine(D10Engine).setAddress(0,0);
 
-    int iseq1 = p->engine(DiagLineEngine).insertSequence(sxu_seq);
-    if (iseq1<0)
-      printf("DiagLine insertSequence failed: %d\n",iseq0);
-
-    printf("--DiagLine sequence [%u]--\n", DiagLineEngine);
-    p->engine(DiagLineEngine).dump();
-
-    if (D10Engine>15) {
-      p->setSequenceRequired   (D10Engine,0);
-      p->setSequenceDestination(D10Engine,D10);
+      std::list<unsigned> resetEngines;
+      resetEngines.push_back(InjectorEngine);
+      resetEngines.push_back(DiagLineEngine);
+      resetEngines.push_back(D10Engine);
+      p->resetSequences(resetEngines);
     }
-
-    std::vector<Instruction*> d10_seq;
-    d10_seq.push_back(new FixedRateSync(rate,1));
-    d10_seq.push_back(new BeamRequest(9));
-    d10_seq.push_back(new Branch(istart));
-
-    int iseq2 = p->engine(D10Engine).insertSequence(d10_seq);
-    if (iseq2<0)
-      printf("D10 insertSequence failed: %d\n",iseq2);
-
-    printf("--D10 sequence [%u]--\n", D10Engine);
-    p->engine(D10Engine).dump();
-
-    //
-    //
-    //  Launch sequences: (1) set reset addresses, (2) reset
-    //
-    p->engine(InjectorEngine).setAddress(iseq0,istart);
-    p->engine(DiagLineEngine).setAddress(iseq1,istart);
-    p->engine(D10Engine).setAddress(iseq2,istart);
-
-    std::list<unsigned> resetEngines;
-    resetEngines.push_back(InjectorEngine);
-    resetEngines.push_back(DiagLineEngine);
-    resetEngines.push_back(D10Engine);
-    p->resetSequences(resetEngines);
-  }
-  else if (reset_rate) {
-    //  Stop the sequences
-    p->engine(InjectorEngine).setAddress(0,0);
-    p->engine(DiagLineEngine).setAddress(0,0);
-    p->engine(D10Engine).setAddress(0,0);
-
-    std::list<unsigned> resetEngines;
-    resetEngines.push_back(InjectorEngine);
-    resetEngines.push_back(DiagLineEngine);
-    resetEngines.push_back(D10Engine);
-    p->resetSequences(resetEngines);
-  }
+  } while(0);
 
   //  if (rcvrReads)
   //    p->dump_rcvr(rcvrReads);
@@ -488,6 +528,11 @@ int TPGen::execute(int argc, char* argv[], TPGen::TPG* p, bool lAsync)
   p->enableSequenceIrq(false);
   p->enableBsaIrq     (false);
   p->enableFaultIrq   (false);
+
+  for(unsigned i=0; i<48; i++) {
+    printf("Engine %d\n",i);
+    p->engine(i).dump();
+  }
 
   delete p->subscribeInterval(0);
   delete p->subscribeFault   (0);
