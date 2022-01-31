@@ -93,8 +93,7 @@ namespace TPGen {
     unsigned getInputTrigs   (unsigned ch) const; // Input triggers
     unsigned getSeqRequests  (unsigned seq) const; // Sequence requests
     unsigned getSeqRequests  (unsigned* array, unsigned array_size) const; // Sequence requests
-    unsigned getSeqRateRequests  (unsigned seq) const; // Sequence actual rate requests
-    unsigned getSeqRateRequests  (unsigned* array, unsigned array_size) const; // Sequence actual rate requests
+    void     getDestRates    (unsigned* array, unsigned array_size) const; // get rates for each destination
 
 
     //  Programmable rate counters (NRateCounters)
