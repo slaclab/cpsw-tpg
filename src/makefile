@@ -1,13 +1,10 @@
 CCACHE_DISABLE=1
 
 
-#CPSW_DIR=/afs/slac/g/lcls/package/cpsw/framework/R4.4.1/src
-CPSW_DIR=/afs/slac/g/lcls/package/cpsw/framework/R4.2.0/src
+CPSW_DIR=/afs/slac/g/lcls/package/cpsw/framework/R4.4.1/src
 BSA_DIR=/afs/slac/g/lcls/package/timing/bsa
 BSA_VERSION=R1.2.0
 BSA=$(BSA_DIR)/$(BSA_VERSION)
-#FIRML_DIR=/afs/slac/g/lcls/package/cpsw/FirmwareLoader/R1.3.0/deviceLibrary/src
-FIRML_DIR=/afs/slac/g/lcls/package/cpsw/FirmwareLoader/R1.2.0/deviceLibrary/src
 
 # may override CPSW_DIR / DEVICELIB_DIR from release.mak
 # must set SRCDIR (is redefined by recursive make)
@@ -19,11 +16,8 @@ include $(CPSW_DIR)/defs.mak
 LDFLAGS+= -Wl,-Bstatic -static-libgcc
 LDFLAGS+=-L$(BSA)/$(TARCH)/lib
 
-INCLUDE_DIRS += $(BSA)/$(TARCH)/include 
+INCLUDE_DIRS += $(BSA)/$(TARCH)/include
 INSTALL_DIR=../
-
-INCLUDE_DIRS += $(FIRML_DIR)
-LDFLAGS+=-L$(FIRML_DIR)/O.$(TARCH) -ldeviceLib
 
 CXXFLAGS = -g -DFRAMEWORK_R3_4
 HEADERS  = TPG.hh SeqState.hh SeqJump.hh SeqMem.hh RamControl.hh Sy56040.hh AxiStreamDmaRingWrite.hh RssiCore.hh
@@ -38,9 +32,9 @@ ncpsw_SRCS = Reg.cc
 
 hps_SRCS = hps_utils.cc
 
-#STATIC_LIBRARIES+=tpg
-#STATIC_LIBRARIES+=ncpsw
-#STATIC_LIBRARIES+=hps
+STATIC_LIBRARIES+=tpg
+STATIC_LIBRARIES+=ncpsw
+STATIC_LIBRARIES+=hps
 
 tpg_tst_SRCS = tpg_tst.cc app.cc
 tpg_tst_LIBS = tpg bsa hps $(CPSW_LIBS)
@@ -125,9 +119,5 @@ tpr_scan_LIBS = ncpsw pthread rt dl
 rfof_stream_SRCS = rfof_stream.cc
 rfof_stream_LIBS = $(CPSW_LIBS) hps pthread rt dl
 #PROGRAMS    += rfof_stream
-
-prom_read_SRCS = prom_read.cc
-prom_read_LIBS = $(CPSW_LIBS) rt dl
-PROGRAMS = prom_read
 
 include $(CPSW_DIR)/rules.mak
