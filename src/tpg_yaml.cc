@@ -626,7 +626,13 @@ namespace TPGen {
     CPSW_TRY_CATCH( IScalVal_RO::create(_private->tpg->findByName("TPGStatus/CountSeq"))->getVal(array,n) );
     return n;
   }
-
+###################################################################
+  unsigned TPGYaml::getSeqRateRequests  (unsigned seq) const { unsigned u; CPSW_TRY_CATCH( u = _GET_U32("DestRate/Destn",_private->tpg,seq) ); return u;}
+  unsigned TPGYaml::getSeqRateRequests  (unsigned* array, unsigned array_size) const
+  { unsigned n = array_size;
+    CPSW_TRY_CATCH( IScalVal_RO::create(_private->tpg->findByName("DestnRate/Destn"))->getVal(array,n) );
+    return n;
+  }
   void     TPGYaml::lockCounters    (bool q) { CPSW_TRY_CATCH( SET_U32(CounterLock,(q?1:0)) ); }
   void     TPGYaml::setCounter      (unsigned i, EventSelection* s)
   {
