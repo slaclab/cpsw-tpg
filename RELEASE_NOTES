@@ -1,3 +1,7 @@
+R1.5.4-2.0  03/02/2022    Kukhee Kim
+            bug fixing for insertionSequence()
+            - finding a free sub-sequence index
+
 R1.5.4-1.0  01/31/2022    Kukhee Kim
             read out destination rates
             branch out from R1.5.4
