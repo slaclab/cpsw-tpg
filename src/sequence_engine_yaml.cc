@@ -309,8 +309,8 @@ int  SequenceEngineYaml::insertSequence(std::vector<Instruction*>& seq)
     }
 
     for(unsigned i=0; i<64; i++)
-      if ((_private->_indices & (1<<i))==0) {
-	_private->_indices |= (1<<i);
+      if ((_private->_indices & (1ULL<<i))==0) {
+	_private->_indices |= (1ULL<<i);
 	aindex=i;
 	break;
       }
