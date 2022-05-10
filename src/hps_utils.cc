@@ -92,9 +92,18 @@ void RingBuffer::dump()
   //  firmware only captures to a max length of 0x3ff words
   if (len>0x3ff) len=0x3ff;
   uint32_t* buff = new uint32_t[len];
-  _dump->getVal(buff,len);
-  for(unsigned i=0; i<len; i++)
+  //  _dump->getVal(buff,len);
+  //  for(unsigned i=0; i<len; i++)
+  //    printf("%08x%c", buff[i], (i&0x7)==0x7 ? '\n':' ');
+  //  printf("%08x\n", _dump->getVal(buff));
+
+  for(unsigned i=0; i<len; i++) {
+    IndexRange range(i);
+    _dump->getVal(&buff[i],1,&range);
     printf("%08x%c", buff[i], (i&0x7)==0x7 ? '\n':' ');
+  }
+
+  delete[] buff;
 }
 
 void RingBuffer::clear_and_dump()
