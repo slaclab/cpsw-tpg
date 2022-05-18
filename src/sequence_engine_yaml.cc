@@ -7,6 +7,14 @@
 #include <stdexcept>
 #include <stdio.h>
 
+static char _buff[256];
+static const char* StartAddrName(unsigned engine) {
+  sprintf(_buff, "StartAddr[%u]/MemoryArray", engine);
+  return _buff;
+}
+
+static unsigned _verbose=0;
+
 namespace TPGen {
 
   class SeqCache {
@@ -19,42 +27,38 @@ namespace TPGen {
   class SeqJump {
   public:
     SeqJump(Path p, unsigned iengine) :
-      _startAddr(IScalVal::create(p->findByName("StartAddr"))),
-      _startSync(IScalVal::create(p->findByName("StartSync"))),
+      _startAddr(IScalVal::create(p->findByName(StartAddrName(iengine)))),
       _engine   (iengine)
     {}
   public:
-    void    setManSync (unsigned   sync) { IndexRange rng(_engine);         _startSync->setVal(&sync,1,&rng); }
-    void    setManStart(unsigned   addr, unsigned pclass) { 
-      IndexRange rng(_engine*16+15);   
-      unsigned v = (addr&0xfff) | ((pclass&0xf)<<12);
+    void    setManStart(unsigned   addr, unsigned pclass, unsigned sync) { 
+      IndexRange rng(15);   
+      unsigned v = (addr&0xfff) | ((pclass&0xf)<<12) | (sync<<16);
       _startAddr->setVal(&v,1,&rng); 
     }
     void    setBcsStart(unsigned   addr,
                         unsigned   pclass) { 
-      IndexRange rng(_engine*16+14);
+      IndexRange rng(14);
       unsigned v = (addr&0xfff) | ((pclass&0xf)<<12);
       _startAddr->setVal(&v,1,&rng); 
     }
     void    setMpsStart(unsigned   chan,
                         unsigned   addr,
                         unsigned   pclass) { 
-      IndexRange rng(_engine*16+chan); 
+      IndexRange rng(chan); 
       unsigned v = (addr&0xfff) | ((pclass&0xf)<<12);
       _startAddr->setVal(&v,1,&rng); 
     }
     void    setMpsState(unsigned   val ,
                         unsigned   sync) 
     { unsigned a,p;
-      { IndexRange rng(_engine*16+val);
+      { IndexRange rng(val);
         _startAddr->getVal(&a,1,&rng);
         p = (a>>12)&0xf;
         a &= 0xfff; }
-      setManStart(a,p);
-      setManSync (sync); }
+      setManStart(a,p,sync); }
       
  private:
-    ScalVal _startSync;
     ScalVal _startAddr;
     unsigned _engine;
   };
@@ -74,7 +78,7 @@ namespace TPGen {
       return *this;
     }
   private:
-    ScalVal   _s;
+    ScalVal  _s;
     mutable IndexRange _rng;
   };
 
@@ -98,11 +102,13 @@ namespace TPGen {
   public:
     PrivateData(Path     ramPath,
                 ScalVal  reset,
+                ScalVal  start,
                 Path     jumpPath,
                 unsigned id,
                 ControlRequest::Type req) :
       _ram    (ramPath,id),
       _reset  (reset),
+      _start  (start),
       _jump   (new SeqJump(jumpPath,id)),
       _id     (id),
       _request_type(req),
@@ -110,6 +116,7 @@ namespace TPGen {
   public:
     SeqRam                       _ram;
     ScalVal                      _reset;
+    ScalVal                      _start;
     SeqJump*                     _jump;
     uint32_t                     _id;
     ControlRequest::Type         _request_type;
@@ -120,8 +127,6 @@ namespace TPGen {
 };
 
 using namespace TPGen;
-
-static unsigned _verbose=0;
 
 /**
    --
@@ -206,12 +211,14 @@ static int _lookup_address(const std::map<unsigned,SeqCache>& caches,
 
 SequenceEngineYaml::SequenceEngineYaml(Path    ramPath,
                                        ScalVal reset,
+                                       ScalVal start,
                                        Path    jumpPath,
                                        uint32_t  id,
                                        ControlRequest::Type req,
                                        unsigned  addrWidth) :
   _private(new SequenceEngineYaml::PrivateData(ramPath,
                                                reset,
+                                            start,
                                                jumpPath,
                                                id,
                                                req))
@@ -227,8 +234,8 @@ SequenceEngineYaml::SequenceEngineYaml(Path    ramPath,
   _private->_caches[a].instr = v;
   _private->_ram   [a] = _word(*static_cast<const Branch*>(v[0]),a);
 
-  v[0] = new Branch(0);
   a=(1<<addrWidth)-1;
+  v[0] = new Branch(a);
   _private->_caches[a].index = 1;
   _private->_caches[a].size  = 1;
   _private->_caches[a].instr = v;
@@ -334,14 +341,23 @@ int  SequenceEngineYaml::insertSequence(std::vector<Instruction*>& seq)
 	    unsigned jaddr = 0;
 	    for(int j=0; j<jumpto; j++)
 	      jaddr += _nwords(*seq[j]);
+            if (_verbose>2)
+              printf(" ram[%u] = 0x%08x\n",
+                     addr,_word(instr,jaddr+best_ram));
 	    _private->_ram[addr++] = _word(instr,jaddr+best_ram);
 	  }
 	} break;
       case Instruction::Fixed:
+        if (_verbose>2)
+          printf(" ram[%u] = 0x%08x\n",
+                 addr,_word(*static_cast<const FixedRateSync*>(seq[i])));
         _private->_ram[addr++] = 
           _word(*static_cast<const FixedRateSync*>(seq[i])); 
 	break;
       case Instruction::AC:
+        if (_verbose>2)
+          printf(" ram[%u] = 0x%08x\n",
+                 addr,_word(*static_cast<const ACRateSync*>(seq[i])));
         _private->_ram[addr++] = 
           _word(*static_cast<const ACRateSync*>(seq[i]));
 	break;
@@ -349,9 +365,15 @@ int  SequenceEngineYaml::insertSequence(std::vector<Instruction*>& seq)
 	{ const Checkpoint& instr = 
 	    *static_cast<const Checkpoint*>(seq[i]);
 	  _private->_callback[addr] = instr.callback();
+          if (_verbose>2)
+            printf(" ram[%u] = 0x%08x\n",
+                   addr,_word(instr));
           _private->_ram[addr++] = _word(instr); }
 	break;
       case Instruction::Request:
+        if (_verbose>2)
+          printf(" ram[%u] = 0x%08x\n",
+                 addr,_word(*static_cast<const ControlRequest*>(seq[i])));
         _private->_ram[addr++] =
           _word(*static_cast<const ControlRequest*>(seq[i]));
         break;
@@ -399,15 +421,19 @@ void SequenceEngineYaml::setAddress  (int seq, unsigned start, unsigned sync)
 {
   int a = _lookup_address(_private->_caches,seq,start);
   if (a>=0) {
-    _private->_jump->setManStart(a,0);
-    _private->_jump->setManSync (sync);
+    _private->_jump->setManStart(a,0,sync);
   }
 }
 
 void SequenceEngineYaml::reset() 
 {
-  uint64_t v = (1ULL<<_private->_id);
-  _private->_reset->setVal(&v,1);
+  uint32_t v[4];
+  memset(v,0,sizeof(v));
+  v[_private->_id/3] = 1U<<(_private->_id%32);
+  { IndexRange rng(0,3);
+    _private->_reset->setVal(v,4,&rng); }
+  { IndexRange rng(0);
+    _private->_start->setVal(v,1,&rng); }
 }
 
 void SequenceEngineYaml::setMPSJump    (int mps, int seq, unsigned pclass, unsigned start)
@@ -444,14 +470,25 @@ void SequenceEngineYaml::setMPSState  (int mps, unsigned sync)
 
 void SequenceEngineYaml::dumpSequence(int index) const
 {
-  if ((_private->_indices&(1ULL<<index))==0) return;
-
   //  Lookup sequence
   for(std::map<unsigned,SeqCache>::const_iterator it=_private->_caches.begin();
-      it!=_private->_caches.end(); it++)
-    if (it->second.index == index)
-      for(unsigned i=0; i<it->second.size; i++)
-        printf("[%08x] %08x\n",it->first+i,unsigned(_private->_ram[it->first+i]));
+      it!=_private->_caches.end(); it++) {
+    if (it->second.index == index) {
+      const std::vector<Instruction*>& seq = it->second.instr;
+      unsigned j=0, ij=0;
+      for(unsigned i=0; i<it->second.size; i++) {
+        printf("[%08x] %08x",it->first+i,unsigned(_private->_ram[it->first+i]));
+        if (i==ij) {
+          printf(" %s\n",seq[j]->descr().c_str());
+          ij += _nwords(*seq[j]);
+          j++;
+        }
+        else
+          printf("\n");
+      }
+      break;
+    }
+  }
 }
 
 void SequenceEngineYaml::handle(unsigned addr)

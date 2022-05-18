@@ -24,10 +24,23 @@
 #include <string.h>
 #include "tpg.hh"
 #include "tpg_lcls.hh"
+#include "tpg_yaml.hh"
 #include "user_sequence.hh"
-#include "sequence_engine.hh"
+#include "sequence_engine_yaml.hh"
 #include "event_selection.hh"
 #include "app.hh"
+
+
+#define CPSW_TRY_CATCH(X)       try {   \
+        (X);                            \
+    } catch (CPSWError &e) {            \
+        fprintf(stderr,                 \
+                "CPSW Error: %s at %s, line %d\n",     \
+                e.getInfo().c_str(),    \
+                __FILE__, __LINE__);    \
+        throw e;                        \
+    }
+
 
 using namespace TPGen;
 
@@ -104,6 +117,13 @@ public:
 private:
 };
 
+static void* poll_irq(void* arg)
+{
+  TPGYaml* p = reinterpret_cast<TPGYaml*>(arg);
+  p->handleIrq();
+  return 0;
+}
+
 //
 //  Generator programming registers
 //
@@ -130,13 +150,6 @@ const char* TPGen::opts() { return _opts; }
 
 int TPGen::execute(int argc, char* argv[], TPGen::TPG* p, bool lAsync)
 {
-  std::vector<Instruction*> hxu_seq;
-  hxu_seq.push_back(new FixedRateSync(2,1));
-  hxu_seq.push_back(new BeamRequest(1));
-  hxu_seq.push_back(new Branch(0));
-  //  p->engine(InjectorEngine).insertSequence(hxu_seq);
-  //  p->engine(InjectorEngine).insertSequence(hxu_seq);
-
   int rate  = -1;
   int nseqfifo = 100;
   unsigned countInterval = 0;
@@ -161,8 +174,6 @@ int TPGen::execute(int argc, char* argv[], TPGen::TPG* p, bool lAsync)
   int counter=-1, counterMask=-1;
   unsigned chg = 1;
 
-  p->engine(InjectorEngine).insertSequence(hxu_seq);
-  
   char* endPtr;
   int c;
   while( (c=getopt(argc,argv,_opts))!=-1 ) {
@@ -180,7 +191,7 @@ int TPGen::execute(int argc, char* argv[], TPGen::TPG* p, bool lAsync)
       break;
     case 'c':
       counter     = strtol (optarg,&endPtr,0);
-      counterMask = next_ul(counterMask,endPtr);
+      counterMask = next_ul(0,endPtr);
       break;
     case 'C':
       ns  = strtoul(optarg,&endPtr,0);
@@ -240,8 +251,6 @@ int TPGen::execute(int argc, char* argv[], TPGen::TPG* p, bool lAsync)
     }
   }
 
-  p->engine(InjectorEngine).insertSequence(hxu_seq);
-
   if (resync) {
     struct tm tm_s;
     tm_s.tm_sec  = 0;
@@ -289,7 +298,10 @@ int TPGen::execute(int argc, char* argv[], TPGen::TPG* p, bool lAsync)
     p->setClockStep(ns,num,den);
   }
 
-  p->dump();
+  pthread_t      thread_id;
+  pthread_create(&thread_id, 0, poll_irq, (void*)p);
+
+  CPSW_TRY_CATCH( p->dump() );
 
   if (energy.size())
     p->setEnergy(energy);
@@ -298,7 +310,8 @@ int TPGen::execute(int argc, char* argv[], TPGen::TPG* p, bool lAsync)
     p->clearHistoryBuffers(clearFault);
 
   if (counter>=0)
-    p->setCounter(counter, new FixedRateSelect(0,counterMask));
+    //    p->setCounter(counter, new FixedRateSelect(0,counterMask));
+    p->setCounter(counter, new ExpSeqSelect(counter,counterMask));
 
   do {
     if (expSeq>=0) {
@@ -324,27 +337,61 @@ int TPGen::execute(int argc, char* argv[], TPGen::TPG* p, bool lAsync)
       p->resetSequences(resetEngines);
     }
 
+#if 1
+    //  Test sequence ram programming
     {
-      //
-      //  Simple 1Hz rate with fixed charge
-      //
-      printf("insertSeq\n");
-      int iseq0 = p->engine(InjectorEngine).insertSequence(hxu_seq);
-      if (iseq0<0)
-        printf("Injector insertSequence failed: %d\n",iseq0);
-      printf("insertSeq %d\n",iseq0);
-    
-      printf("--Injector sequence [%u]--\n", InjectorEngine);
-      p->engine(InjectorEngine).dump();
+      //      SequenceEngineYaml::verbosity(3);
 
       unsigned istart=0;
-      p->engine(InjectorEngine).setAddress(iseq0,istart);
-
-      std::list<unsigned> resetEngines;
-      resetEngines.push_back(InjectorEngine);
-      p->resetSequences(resetEngines);
-      break;
+      std::list<unsigned> seq_list;
+      for(unsigned i=0; i<100; i++) {
+        std::vector<Instruction*> useq;
+        if (i<32) {
+          useq.push_back(new FixedRateSync(0,1));
+          useq.push_back(new BeamRequest(1));        
+          useq.push_back(new FixedRateSync(0,1));
+          useq.push_back(new BeamRequest(3));        
+          useq.push_back(new FixedRateSync(0,1));
+          useq.push_back(new BeamRequest(7));        
+          useq.push_back(new FixedRateSync(0,1));
+          useq.push_back(new BeamRequest(15));        
+        }
+        else {
+          useq.push_back(new FixedRateSync(0,1));
+          useq.push_back(new ExptRequest(1));
+          useq.push_back(new FixedRateSync(0,1));
+          useq.push_back(new ExptRequest(3));
+          useq.push_back(new FixedRateSync(0,1));
+          useq.push_back(new ExptRequest(7));
+          useq.push_back(new FixedRateSync(0,1));
+          useq.push_back(new ExptRequest(15));
+        }
+        useq.push_back(new Branch(istart,ctrA,i+1));
+        useq.push_back(new FixedRateSync(6,1));
+        useq.push_back(new Branch(istart));
+        int iseq = p->engine(i).insertSequence(useq);
+        if (iseq<0)
+          printf("..Failed[%d]\n",iseq);
+        if (i<16) {
+          for(unsigned j=0; j<14; j++)
+            p->engine(i).setMPSJump(j, iseq, j, istart);
+          p->engine(i).setBCSJump(iseq, 0, istart);
+        }
+        p->engine(i).setAddress(iseq, istart, 6);
+        seq_list.push_back(i);
+      }
+      CPSW_TRY_CATCH( p->resetSequences(seq_list) );
     }
+
+    /*
+    {
+      for(unsigned i=0; i<100; i++)
+        p->engine(i).setAddress(2, 0, 6);
+      //p->getSeqRequests(unsigned(0),0);
+      abort();
+    }
+    */
+#endif
 
     if (rate>=0) {
 
@@ -410,12 +457,14 @@ int TPGen::execute(int argc, char* argv[], TPGen::TPG* p, bool lAsync)
         p->setSequenceDestination(InjectorEngine,Injector);
       }
 
-      printf("insertSeq\n");
+      printf("--Injector [%u] sequence length [%u]\n",InjectorEngine,hxu_seq.size());
+      
       int iseq0 = p->engine(InjectorEngine).insertSequence(hxu_seq);
       if (iseq0<0)
-        printf("Injector insertSequence failed: %d\n",iseq0);
-    
-      printf("--Injector sequence [%u]--\n", InjectorEngine);
+        printf("..Failed[%d]\n",iseq0);
+      else
+        printf("..Success\n");
+
       p->engine(InjectorEngine).dump();
 
       if (DiagLineEngine>15) {
@@ -423,11 +472,13 @@ int TPGen::execute(int argc, char* argv[], TPGen::TPG* p, bool lAsync)
         p->setSequenceDestination(DiagLineEngine,DiagLine);
       }
 
+      printf("--DiagLine [%u] sequence length [%u]\n", DiagLineEngine,sxu_seq.size());
       int iseq1 = p->engine(DiagLineEngine).insertSequence(sxu_seq);
       if (iseq1<0)
-        printf("DiagLine insertSequence failed: %d\n",iseq0);
+        printf("..Failed[%d]\n",iseq0);
+      else
+        printf("..Success\n");
 
-      printf("--DiagLine sequence [%u]--\n", DiagLineEngine);
       p->engine(DiagLineEngine).dump();
 
       if (D10Engine>15) {
@@ -440,11 +491,13 @@ int TPGen::execute(int argc, char* argv[], TPGen::TPG* p, bool lAsync)
       d10_seq.push_back(new BeamRequest(9));
       d10_seq.push_back(new Branch(istart));
 
+      printf("--D10Engine [%u] sequence length [%u]\n", DiagLineEngine,d10_seq.size());
       int iseq2 = p->engine(D10Engine).insertSequence(d10_seq);
       if (iseq2<0)
-        printf("D10 insertSequence failed: %d\n",iseq2);
+        printf("..Failed[%d]\n",iseq2);
+      else
+        printf("..Success\n");
 
-      printf("--D10 sequence [%u]--\n", D10Engine);
       p->engine(D10Engine).dump();
 
       //
@@ -525,14 +578,18 @@ int TPGen::execute(int argc, char* argv[], TPGen::TPG* p, bool lAsync)
   while(sleeps--) 
     sleep(1);
 
+  printf("========\n");
+  p->dump();
   p->enableSequenceIrq(false);
   p->enableBsaIrq     (false);
   p->enableFaultIrq   (false);
 
-  for(unsigned i=0; i<48; i++) {
+  /*
+  for(unsigned i=0; i<100; i++) {
     printf("Engine %d\n",i);
     p->engine(i).dump();
   }
+  */
 
   delete p->subscribeInterval(0);
   delete p->subscribeFault   (0);

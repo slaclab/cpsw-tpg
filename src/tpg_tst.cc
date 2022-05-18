@@ -15,7 +15,6 @@
 //                    - FIFO dump
 //
 #include "app.hh"
-#include "tpg_cpsw.hh"
 #include "tpg_yaml.hh"
 #include "sequence_engine_yaml.hh"
 #include <string.h>
@@ -31,11 +30,20 @@
 
 static void usage(const char* p)
 {
-  printf("Usage: %s [options]\n"
-         "  -a <ip>\n"
-         "  -y <yaml file>\n",p);
+  printf("Usage: %s -y <yaml_file> [options]\n"
+         "  -a <ip>\n",p);
   printf("%s",TPGen::usage());
 }
+
+#define CPSW_TRY_CATCH(X)       try {   \
+        (X);                            \
+    } catch (CPSWError &e) {            \
+        fprintf(stderr,                 \
+                "CPSW Error: %s at %s, line %d\n",     \
+                e.getInfo().c_str(),    \
+                __FILE__, __LINE__);    \
+        throw e;                        \
+    }
 
 int main(int argc, char* argv[])
 {
@@ -72,12 +80,15 @@ int main(int argc, char* argv[])
     TPGen::SequenceEngineYaml::verbosity(verbosity);
     IYamlFixup* fixup = new Cphw::IpAddrFixup(ip);
     Path path = IPath::loadYamlFile(yaml,"NetIODev",0,fixup);
-    p = new TPGen::TPGYaml(path);
+    CPSW_TRY_CATCH ( p = new TPGen::TPGYaml(path) );
   }
-  else 
-    p = new TPGen::TPGCpsw(ip);
+  else {
+    usage(argv[0]);
+    exit(1);
+  }
 
   optind = 0;
   //  return execute(argc, argv, p, false);
-  return execute(argc, argv, p, true);
+  CPSW_TRY_CATCH ( execute(argc, argv, p, true) );
+  return 0;
 }

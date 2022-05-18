@@ -211,6 +211,7 @@ namespace TPGen {
     virtual unsigned getInputTrigs   (unsigned ch) const = 0;  // External triggers
     // Sequence requests
     virtual unsigned getSeqRequests  (unsigned seq) const = 0; 
+    virtual unsigned getSeqRequests  (unsigned seq, unsigned bit) const = 0; 
     virtual unsigned getSeqRequests  (unsigned* array, unsigned array_size) const = 0;
     //
     //  Programmable rate counters (NRateCounters)

@@ -36,7 +36,8 @@ namespace TPGen {
     //  Construct an engine with its sequence RAM and start register address
     //
     SequenceEngineYaml(Path      ramPath,
-                       ScalVal   resetReg,
+                       ScalVal   seqReset,
+                       ScalVal   seqStart,
                        Path      jumpPath,
                        unsigned  id,
                        ControlRequest::Type req_type,

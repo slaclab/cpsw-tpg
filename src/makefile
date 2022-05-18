@@ -20,13 +20,11 @@ INCLUDE_DIRS += $(BSA)/$(TARCH)/include
 INSTALL_DIR=../
 
 CXXFLAGS = -g -DFRAMEWORK_R3_4
-HEADERS  = TPG.hh SeqState.hh SeqJump.hh SeqMem.hh RamControl.hh Sy56040.hh AxiStreamDmaRingWrite.hh RssiCore.hh
-HEADERS += sequence_engine.hh sequence_engine_cpsw.hh sequence_engine_yaml.hh
-HEADERS += tpg.hh tpg_cpsw.hh user_sequence.hh event_selection.hh frame.hh tpg_yaml.hh
+HEADERS  = sequence_engine.hh sequence_engine_yaml.hh
+HEADERS += tpg.hh user_sequence.hh event_selection.hh frame.hh tpg_yaml.hh
 
-tpg_SRCS  = TPG.cc SeqState.cc SeqJump.cc SeqMem.cc RamControl.cc Sy56040.cc AxiStreamDmaRingWrite.cc RssiCore.cc
-tpg_SRCS += sequence_engine_cpsw.cc sequence_engine_yaml.cc
-tpg_SRCS += tpg_cpsw.cc user_sequence.cc event_selection.cc tpg_yaml.cc
+tpg_SRCS  = sequence_engine_yaml.cc
+tpg_SRCS += user_sequence.cc event_selection.cc tpg_yaml.cc
 
 ncpsw_SRCS = Reg.cc
 
@@ -42,7 +40,7 @@ PROGRAMS    += tpg_tst
 
 tpg_dump_SRCS = tpg_dump.cc app.cc
 tpg_dump_LIBS = tpg bsa hps $(CPSW_LIBS)
-PROGRAMS    += tpg_dump
+#PROGRAMS    += tpg_dump
 
 async_poll_SRCS = async_poll.cc
 async_poll_LIBS = $(CPSW_LIBS)
@@ -86,15 +84,15 @@ mpssim_tst_LIBS = ncpsw pthread rt dl
 
 hps_control_SRCS = hps_control.cc
 hps_control_LIBS = $(CPSW_LIBS) hps pthread rt dl
-PROGRAMS    += hps_control
+#PROGRAMS    += hps_control
 
 hps_checkout_SRCS = hps_checkout.cc
 hps_checkout_LIBS = $(CPSW_LIBS) hps pthread rt dl
-PROGRAMS    += hps_checkout
+#PROGRAMS    += hps_checkout
 
 hps_peek_SRCS = hps_peek.cc
 hps_peek_LIBS = $(CPSW_LIBS) hps pthread rt dl
-PROGRAMS    += hps_peek
+#PROGRAMS    += hps_peek
 
 hps_eyescan_SRCS = hps_eyescan.cc
 hps_eyescan_LIBS = $(CPSW_LIBS) hps pthread rt dl
@@ -104,20 +102,12 @@ cryo_peek_SRCS = cryo_peek.cc
 cryo_peek_LIBS = $(CPSW_LIBS) hps pthread rt dl
 #PROGRAMS    += cryo_peek
 
-tprtest_SRCS = tprtest.cc tpr.cc
-tprtest_LIBS = $(CPSW_LIBS) hps pthread rt dl
-PROGRAMS    += tprtest
+xvc_SRCS = xvc.cc
+xvc_LIBS = pthread rt dl
+#PROGRAMS    += xvc
 
-tpr_trig_SRCS = tpr_trig.cc tpr.cc
-tpr_trig_LIBS = hps pthread rt dl
-PROGRAMS    += tpr_trig
-
-tpr_scan_SRCS = tpr_scan.cc
-tpr_scan_LIBS = ncpsw pthread rt dl
-#PROGRAMS    += tpr_scan
-
-rfof_stream_SRCS = rfof_stream.cc
-rfof_stream_LIBS = $(CPSW_LIBS) hps pthread rt dl
-#PROGRAMS    += rfof_stream
+bld_control_SRCS = bld_control.cc
+bld_control_LIBS = $(CPSW_LIBS) hps pthread rt dl
+PROGRAMS    += bld_control
 
 include $(CPSW_DIR)/rules.mak

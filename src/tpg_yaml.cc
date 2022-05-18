@@ -2,8 +2,8 @@
 #include "sequence_engine_yaml.hh"
 #include "event_selection.hh"
 
-#include <TPG.hh>
-#include <AmcCarrier.hh>
+//#include <TPG.hh>
+//#include <AmcCarrier.hh>
 
 #include <cpsw_api_user.h>
 
@@ -13,6 +13,7 @@
 #include <sys/mman.h>
 #include <time.h>
 #include <pthread.h>
+#include <unistd.h>
 
 #include <map>
 #include <vector>
@@ -150,8 +151,10 @@ namespace TPGen {
     const unsigned NSEQUENCES = nAllowEngines()+nBeamEngines()+nExptEngines();
     const unsigned SEQADDRW   = seqAddrWidth();
     char buff[256];
-    ScalVal seqRestart = IScalVal::create(_private->tpg->findByName("TPGControl/SeqRestart"));
+    ScalVal seqReset = IScalVal::create(_private->tpg->findByName("TPGControl/SeqRestart"));
+    ScalVal seqStart = IScalVal::create(_private->tpg->findByName("TPGControl/SeqRestartGo"));
     _private->sequences.reserve(NSEQUENCES);
+    
     for(unsigned i=0; i<NSEQUENCES; i++) {
       sprintf(buff,"TPGSeqMem/ICache[%u]",i);
       Path memPath = _private->tpg->findByName(buff);
@@ -159,7 +162,8 @@ namespace TPGen {
       Path jumpPath = _private->tpg->findByName(buff);
       _private->sequences[i] =
 	new SequenceEngineYaml(memPath,
-                               seqRestart,
+                               seqReset,
+                               seqStart,
                                jumpPath,
                                i,
                                i<NBEAMSEQ ?
@@ -386,6 +390,7 @@ namespace TPGen {
       }                                                          \
       printf("\n")
 #define printr64(reg) printf("%15.15s: %016lx\n",#reg,GET_U64(reg))
+
     char buff[256];
     //    printr("FwVersion       : %08x\n",_private->device->fwVersion);
     printr  (NBeamSeq);
@@ -426,7 +431,6 @@ namespace TPGen {
       printf("\n"); }
     printr  (BeamDiagCount);
     printrn (BeamDiagStatus,4);
-    printr  (SeqRestart);
 #if 0
     printf("L1Trig          :");
     for(unsigned i=0; i<7; i++)
@@ -449,20 +453,38 @@ namespace TPGen {
       printf(" %09u", const_cast<TPGYaml*>(this)->getCounter(i));
     printf("\n");
 
+    unsigned nAllowEng = nAllowEngines();
+    unsigned nBeamEng  = nBeamEngines();
+    unsigned nCtrlEng  = nExptEngines();
+
     printf("-- Sequence Diagnostics:  CountSeq (# requests)  SeqState (instr# ctr0:ctr1:ctr2:ctr3)\n");
     printf("%15.15s\n","--AllowEngines");
-    _dumpSeqState(0,nAllowEngines());
+    _dumpSeqState(0,nAllowEng);
     printf("%15.15s\n","--BeamEngines");
-    _dumpSeqState(nAllowEngines(),nBeamEngines());
+    _dumpSeqState(nAllowEng,nBeamEng);
     printf("%15.15s\n","--ExptEngines");
-    _dumpSeqState(nAllowEngines()+nBeamEngines(),nExptEngines());
+    _dumpSeqState(nAllowEng+nBeamEng,nCtrlEng);
     
     printf("\n");
-    { ScalVal_RO r = IScalVal::create(_private->tpg->findByName("TPGSeqJump/StartAddr"));
-      IndexRange rng(0);
-      for(unsigned i=0; i<16; i++) {
+    { 
+      for(unsigned i=0; i<nAllowEng; i++) {
         printf("%11.11s[%02d]:","SeqJump",i);
+        sprintf(buff,"TPGSeqJump/StartAddr[%u]/MemoryArray",i);
+        ScalVal_RO r = IScalVal::create(_private->tpg->findByName(buff));
+        IndexRange rng(0);
         for(unsigned j=0; j<16; j++, ++rng) {
+          unsigned a;
+          r->getVal(&a,1,&rng);
+          printf(" %04x", a);
+        }
+        printf("\n");
+      }
+      for(unsigned i=nAllowEng; i<nAllowEng+nBeamEng+nCtrlEng; i+=16) {
+        printf("%11.11s[%02d:%02d]:","SeqJump",i,i+15);
+        for(unsigned j=0; j<16 && (i+j)<nAllowEng+nBeamEng+nCtrlEng; j++) {
+          sprintf(buff,"TPGSeqJump/StartAddr[%u]/MemoryArray",i+j);
+          ScalVal_RO r = IScalVal::create(_private->tpg->findByName(buff));
+          IndexRange rng(15);
           unsigned a;
           r->getVal(&a,1,&rng);
           printf(" %04x", a);
@@ -532,11 +554,17 @@ namespace TPGen {
 
   void TPGYaml::resetSequences(const std::list<unsigned>& l)
   {
-    uint64_t v=0;
+    uint32_t v[4];
+    memset(v,0,sizeof(v));
     for(std::list<unsigned>::const_iterator it=l.begin();
 	it!=l.end(); it++)
-      v |= 1ULL<<(*it);
-    CPSW_TRY_CATCH( SET_REG(SeqRestart,v) );
+      v[*it/32] |= 1ULL<<(*it % 32);
+
+    { IndexRange rng(0,3);
+      IScalVal::create( _private->tpg->findByName("TPGControl/SeqRestart"))->setVal(v,4,&rng); }
+
+    { IndexRange rng(0);
+      IScalVal::create( _private->tpg->findByName("TPGControl/SeqRestartGo"))->setVal(v,1,&rng); }
   }
 
   unsigned TPGYaml::getDiagnosticSequence() const  { unsigned u; CPSW_TRY_CATCH( u = GET_U32(DiagSeq) ); return u; }
@@ -617,14 +645,18 @@ namespace TPGen {
   unsigned TPGYaml::getCountInterval() const { unsigned u; CPSW_TRY_CATCH( u = GET_U32S(CountIntv) ); return u; }
   unsigned TPGYaml::getBaseRateTrigs() const { unsigned u; CPSW_TRY_CATCH( u = GET_U32S(CountBRT) ); return u; }
   unsigned TPGYaml::getInputTrigs   (unsigned ch) const { unsigned u; CPSW_TRY_CATCH( u = GET_U32SI(CountTrig,ch) ); return u;}
-  unsigned TPGYaml::getSeqRequests  (unsigned seq) const { unsigned u; CPSW_TRY_CATCH( u = GET_U32SI(CountSeq,seq) ); return u;}
+  unsigned TPGYaml::getSeqRequests  (unsigned seq) const { return getSeqRequests(seq,0); }
+  unsigned TPGYaml::getSeqRequests  (unsigned seq, unsigned bit) const { 
+    char buff[256];
+    sprintf(buff,"TPGStatus/CountSeq[%u]/Count",seq);
+    unsigned u;
+    CPSW_TRY_CATCH( u = _GET_U32(buff,_private->tpg,bit) ); 
+    return u;
+  }
   unsigned TPGYaml::getSeqRequests  (unsigned* array, unsigned array_size) const
-  { unsigned n = array_size;
-    //    const unsigned NSEQUENCES = nAllowEngines()+nBeamEngines()+nExptEngines();
-    //    if (n > NSEQUENCES)
-    //      n = NSEQUENCES;
-    CPSW_TRY_CATCH( IScalVal_RO::create(_private->tpg->findByName("TPGStatus/CountSeq"))->getVal(array,n) );
-    return n;
+  { for(unsigned i=0; i<array_size; i++)
+      array[i] = getSeqRequests(i/4,i%4);
+    return array_size;
   }
   unsigned TPGYaml::getSeqRateRequests  (unsigned seq) const { unsigned u; CPSW_TRY_CATCH( u = _GET_U32("DestRate/Destn",_private->tpg,seq) ); return u;}
   unsigned TPGYaml::getSeqRateRequests  (unsigned* array, unsigned array_size) const
@@ -822,14 +854,25 @@ namespace TPGen {
     char buff[256];
 
     { printf("%15.15s:","CountSeq");
-      unsigned* seqcount = new unsigned[64];
-      getSeqRequests(seqcount,64);
-      unsigned i=seq0;
-      for(unsigned j=0; j<nseq; j++,i++) {
-        printf(" %8u",seqcount[i]);
-        if ((j%10)==9) printf("\n                ");
+      /*
+      unsigned* seqcount = new unsigned[(seq0+nseq)*4];
+      getSeqRequests(seqcount,(seq0+nseq)*4);
+      unsigned i=seq0*4;
+      for(unsigned j=0; j<nseq; j++,i+=4) {
+        printf(" %6u:%6u:%6u:%6u", 
+               seqcount[i], seqcount[i+1], seqcount[i+2], seqcount[i+3]);
+        if ((j%3)==2) printf("\n                ");
       }
       delete seqcount;
+      */
+      for(unsigned i=0; i<nseq; i++) {
+        printf(" %6u:%6u:%6u:%6u", 
+               getSeqRequests(seq0+i,0),
+               getSeqRequests(seq0+i,1),
+               getSeqRequests(seq0+i,2),
+               getSeqRequests(seq0+i,3));
+        if ((i%3)==2)  printf("\n                ");
+      }
       printf("\n"); }
 
     { printf("%15.15s:","SeqState");
@@ -844,7 +887,7 @@ namespace TPGen {
         IScalVal_RO::create(_private->tpg->findByName("TPGSeqState/SeqCondCCount"))->getVal(&cc[2],1,&rng);
         IScalVal_RO::create(_private->tpg->findByName("TPGSeqState/SeqCondDCount"))->getVal(&cc[3],1,&rng);
         printf(" :%u:%u:%u:%u",cc[0],cc[1],cc[2],cc[3]);
-        if ((j%5)==4)
+        if ((j%3)==2)
           printf("\n                ");
       }
       printf("\n");

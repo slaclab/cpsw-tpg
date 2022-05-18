@@ -2,6 +2,7 @@
 #define TPG_UserSequence_hh
 
 #include <stdint.h>
+#include <string>
 
 namespace TPGen {
   class Callback;
@@ -15,6 +16,7 @@ namespace TPGen {
     virtual ~Instruction() {}
   public:
     virtual Instruction::Type instr() const = 0;
+    virtual std::string descr() const = 0;
   };
 
   //
@@ -26,6 +28,7 @@ namespace TPGen {
     ~Checkpoint();
   public:
     Instruction::Type instr() const;
+    std::string descr() const;
     Callback* callback() const;
   private:
     Callback* _callback;
@@ -42,6 +45,7 @@ namespace TPGen {
     ~FixedRateSync();
   public:
     Instruction::Type instr() const;
+    std::string descr() const;
   public:
     unsigned        marker_id;
     unsigned        occurrence;
@@ -58,6 +62,7 @@ namespace TPGen {
     ~ACRateSync();
   public:
     Instruction::Type instr() const;
+    std::string descr() const;
   public:
     unsigned        timeslot_mask;
     unsigned        marker_id;
@@ -82,6 +87,7 @@ namespace TPGen {
     ~Branch();
   public:
     Instruction::Type instr() const;
+    std::string descr() const;
   public:
     unsigned  address;
     CCnt      counter;
@@ -107,6 +113,7 @@ namespace TPGen {
     ~BeamRequest();
   public:
     ControlRequest::Type request() const;
+    std::string descr() const;
     unsigned value() const;
   public:
     unsigned charge;
@@ -121,6 +128,7 @@ namespace TPGen {
     ~ExptRequest();
   public:
     ControlRequest::Type request() const;
+    std::string descr() const;
     unsigned value() const;
   public:
     uint32_t word;

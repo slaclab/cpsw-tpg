@@ -92,6 +92,7 @@ namespace TPGen {
     unsigned getBaseRateTrigs() const;  // Base rate triggers/frames
     unsigned getInputTrigs   (unsigned ch) const; // Input triggers
     unsigned getSeqRequests  (unsigned seq) const; // Sequence requests
+    unsigned getSeqRequests  (unsigned seq,unsigned bit) const; // Sequence requests
     unsigned getSeqRequests  (unsigned* array, unsigned array_size) const; // Sequence requests
     unsigned getSeqRateRequests  (unsigned seq) const; // Sequence actual rate requests
     unsigned getSeqRateRequests  (unsigned* array, unsigned array_size) const; // Sequence actual rate requests
