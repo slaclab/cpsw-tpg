@@ -132,6 +132,7 @@ namespace TPGen {
   public:
     Path                             root;
     Path                             tpg;
+    ScalVal_RO                       destRate;
     ScalVal_RO                       bsaComplete;
     std::vector<SequenceEngineYaml*> sequences;
     std::map<unsigned,Callback*>     bsaCallback;
@@ -144,6 +145,7 @@ namespace TPGen {
   {
     _private->root        = root;
     _private->tpg         = root->findByName("mmio/AmcCarrierTimingGenerator/ApplicationCore/TPG");
+    _private->destRate    = IScalVal_RO::create(root->findByName("mmio/AmcCarrierTimingGenerator/ApplicationCore/DestnRate/Destn"));
     _private->bsaComplete = IScalVal_RO::create(_private->tpg->findByName("TPGControl/BsaComplete"));
 
     const unsigned NALLOWSEQ  = nAllowEngines();
@@ -664,6 +666,7 @@ namespace TPGen {
     CPSW_TRY_CATCH( IScalVal_RO::create(_private->tpg->findByName("DestnRate/Destn"))->getVal(array,n) );
     return n;
   }
+
   void     TPGYaml::lockCounters    (bool q) { CPSW_TRY_CATCH( SET_U32(CounterLock,(q?1:0)) ); }
   void     TPGYaml::setCounter      (unsigned i, EventSelection* s)
   {

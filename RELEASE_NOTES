@@ -1,6 +1,19 @@
+R1.6.1     05/20/2022    Kukhee Kim
+            - merge R1.5.4-br branch to pickup R1.5.4-1.0 and R1.5.4-2.0
+
+
 R1.6.0      05/20/2022   Matt Weaver
             - increase control/experiment engines and reduce the bits each contributes to the timing frame
             - clean up un-necessary code and print out messages
+
+R1.5.4-2.0  03/02/2022    Kukhee Kim
+            bug fixing for insertionSequence()
+            - finding a free sub-sequence index
+
+R1.5.4-1.0  01/31/2022    Kukhee Kim
+            read out destination rates
+            branch out from R1.5.4
+
 
 R1.5.4      10/10/2021    Matt Weaver
             Add modesel in hps_peek
