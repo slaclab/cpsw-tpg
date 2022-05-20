@@ -1,3 +1,7 @@
+R1.6.0      05/20/2022   Matt Weaver
+            - increase control/experiment engines and reduce the bits each contributes to the timing frame
+            - clean up un-necessary code and print out messages
+
 R1.5.4      10/10/2021    Matt Weaver
             Add modesel in hps_peek
             Print errors for failing sequence insertion
