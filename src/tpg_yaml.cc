@@ -132,7 +132,7 @@ namespace TPGen {
   public:
     Path                             root;
     Path                             tpg;
-    ScalVal_RO                       destRate;
+    Path                             core;
     ScalVal_RO                       bsaComplete;
     std::vector<SequenceEngineYaml*> sequences;
     std::map<unsigned,Callback*>     bsaCallback;
@@ -145,7 +145,7 @@ namespace TPGen {
   {
     _private->root        = root;
     _private->tpg         = root->findByName("mmio/AmcCarrierTimingGenerator/ApplicationCore/TPG");
-    _private->destRate    = IScalVal_RO::create(root->findByName("mmio/AmcCarrierTimingGenerator/ApplicationCore/DestnRate/Destn"));
+    _private->core        = root->findByName("mmio/AmcCarrierTimingGenerator/ApplicationCore");
     _private->bsaComplete = IScalVal_RO::create(_private->tpg->findByName("TPGControl/BsaComplete"));
 
     const unsigned NALLOWSEQ  = nAllowEngines();
@@ -660,10 +660,10 @@ namespace TPGen {
       array[i] = getSeqRequests(i/4,i%4);
     return array_size;
   }
-  unsigned TPGYaml::getSeqRateRequests  (unsigned seq) const { unsigned u; CPSW_TRY_CATCH( u = _GET_U32("DestRate/Destn",_private->tpg,seq) ); return u;}
+  unsigned TPGYaml::getSeqRateRequests  (unsigned seq) const { unsigned u; CPSW_TRY_CATCH( u = _GET_U32("DestRate/Destn",_private->core,seq) ); return u;}
   unsigned TPGYaml::getSeqRateRequests  (unsigned* array, unsigned array_size) const
   { unsigned n = array_size;
-    CPSW_TRY_CATCH( IScalVal_RO::create(_private->tpg->findByName("DestnRate/Destn"))->getVal(array,n) );
+    CPSW_TRY_CATCH( IScalVal_RO::create(_private->core->findByName("DestnRate/Destn"))->getVal(array,n) );
     return n;
   }
 

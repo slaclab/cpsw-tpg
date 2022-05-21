@@ -1,3 +1,6 @@
+R1.6.2     05/20/2022    Kukhee Kim
+            - bug fix for the DestnRate register path
+
 R1.6.1     05/20/2022    Kukhee Kim
             - merge R1.5.4-br branch to pickup R1.5.4-1.0 and R1.5.4-2.0
 
