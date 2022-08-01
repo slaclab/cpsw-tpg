@@ -44,6 +44,13 @@ static uint64_t GET_U1(Path pre)
   return r;
 }
 
+static uint8_t _GET_U8(const char* name, Path path) 
+{
+  uint8_t v;
+  IScalVal_RO::create(path->findByName(name))->getVal(&v);
+  return v;
+}
+
 static uint8_t _GET_U8(const char* name, Path path, unsigned index) 
 {
   IndexRange rng(index);
@@ -91,6 +98,7 @@ static void _SET_U32(const char* name, Path path, unsigned r)
     }
 
 #define GET_U32(name)   _GET_U32("TPGControl/"#name,_private->tpg)
+#define GET_U8(name)    _GET_U8("TPGControl/"#name,_private->tpg)
 #define GET_U8I(name,i) _GET_U8("TPGControl/"#name,_private->tpg,i)
 #define GET_U32I(name,i) _GET_U32("TPGControl/"#name,_private->tpg,i)
 #define GET_U64(name)   _GET_U64("TPGControl/"#name,_private->tpg)
@@ -134,6 +142,7 @@ namespace TPGen {
     Path                             tpg;
     Path                             core;
     ScalVal_RO                       bsaComplete;
+    ScalVal_RO                       bsaTimestamp;
     std::vector<SequenceEngineYaml*> sequences;
     std::map<unsigned,Callback*>     bsaCallback;
     Callback*                        intervalCallback;
@@ -147,6 +156,7 @@ namespace TPGen {
     _private->tpg         = root->findByName("mmio/AmcCarrierTimingGenerator/ApplicationCore/TPG");
     _private->core        = root->findByName("mmio/AmcCarrierTimingGenerator/ApplicationCore");
     _private->bsaComplete = IScalVal_RO::create(_private->tpg->findByName("TPGControl/BsaComplete"));
+    _private->bsaTimestamp = IScalVal_RO::create(_private->tpg->findByName("TPGStatus/BsaTimestamp"));
 
     const unsigned NALLOWSEQ  = nAllowEngines();
     const unsigned NBEAMSEQ   = nAllowEngines()+nBeamEngines();
@@ -362,6 +372,11 @@ namespace TPGen {
   unsigned TPGYaml::faultCounts() const
   { unsigned u;
     CPSW_TRY_CATCH( u = GET_U32(BeamDiagCount) );
+    return u; }
+
+  bool TPGYaml::bcsLatched() const
+  { uint8_t u;
+    CPSW_TRY_CATCH( u = GET_U8(BcsLatch) );
     return u; }
 
   void TPGYaml::setEnergy(const std::vector<unsigned>& energy) {
@@ -639,6 +654,23 @@ namespace TPGen {
     CPSW_TRY_CATCH( SET_REG(BsaComplete, ack) );
   }
 
+  std::map<unsigned,uint64_t> TPGYaml::getBSATimestamps() const
+  {
+    std::map<unsigned,uint64_t> ts;
+    IndexRange rng(0,1);
+    uint64_t v[2];
+    while(1) {
+      CPSW_TRY_CATCH( _private->bsaTimestamp->getVal(v,2,&rng) );
+      if (v[1]==0) // bit mask of bsa arrays
+        break;
+      for(unsigned i=0; i<64 && v[1]; i++) {
+        v[1] &= ~(1ULL<<i);
+        ts[i] = v[0]; // the timestamp
+      }
+    }
+    return ts;
+  }
+  
   void TPGYaml::setCountInterval(unsigned v) { SET_U32S(CountIntv,v); }
   
   unsigned TPGYaml::getPLLchanges   () const { unsigned u; CPSW_TRY_CATCH( u = GET_U32S(CountPLL) ); return u; }

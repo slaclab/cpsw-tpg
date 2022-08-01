@@ -53,6 +53,7 @@ namespace TPGen {
     void     setHistoryBufferHoldoff(unsigned);  // in base rate cycles
     std::vector<FaultStatus> getHistoryStatus();
     unsigned faultCounts() const;
+    bool     bcsLatched() const;
     void     setEnergy(const std::vector<unsigned>&);
     void     setWavelength(const std::vector<unsigned>&);
 
@@ -83,6 +84,7 @@ namespace TPGen {
 			    unsigned& avgToAcquire);
     uint64_t bsaComplete   ();
     void     bsaComplete   (uint64_t ack); // clear handled bits
+    std::map<unsigned,uint64_t> getBSATimestamps() const;
 
     unsigned getPLLchanges   () const;  // PLL lock changes
     unsigned get186Mticks    () const;  // 186M clocks

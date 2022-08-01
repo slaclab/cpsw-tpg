@@ -7,6 +7,7 @@
 #include <stdint.h>
 
 #include <list>
+#include <map>
 #include <vector>
 
 namespace TPGen {
@@ -129,6 +130,7 @@ namespace TPGen {
     virtual void setHistoryBufferHoldoff(unsigned) = 0;
     virtual std::vector<FaultStatus> getHistoryStatus() = 0;
     virtual unsigned faultCounts() const = 0;
+    virtual bool bcsLatched() const = 0;
     //
     //  Program the beam energy meta data
     //
@@ -193,6 +195,10 @@ namespace TPGen {
     virtual void queryBSA          (unsigned array,
                                     unsigned& nToAverage,
                                     unsigned& avgToAcquire) = 0;
+    //
+    //  Query the timestamps of updated acquisitions
+    //
+    virtual std::map<unsigned,uint64_t> getBSATimestamps() const = 0;
     //
     // 
     //  Diagnostic counters
