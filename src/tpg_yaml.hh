@@ -51,6 +51,7 @@ namespace TPGen {
     void     acquireHistoryBuffers (bool);
     void     clearHistoryBuffers   (unsigned);
     void     setHistoryBufferHoldoff(unsigned);  // in base rate cycles
+    void     setHistoryBufferInhibit(unsigned);  // in base rate cycles
     std::vector<FaultStatus> getHistoryStatus();
     unsigned faultCounts() const;
     bool     bcsLatched() const;

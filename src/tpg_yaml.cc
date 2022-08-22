@@ -356,6 +356,9 @@ namespace TPGen {
   void TPGYaml::setHistoryBufferHoldoff(unsigned v)
   { CPSW_TRY_CATCH( SET_U32(BeamDiagHoldoff,v) ); }
 
+  void TPGYaml::setHistoryBufferInhibit(unsigned v)
+  { CPSW_TRY_CATCH( SET_U32(BeamDiagInhibit,v) ); }
+
   std::vector<FaultStatus> TPGYaml::getHistoryStatus()
   { std::vector<FaultStatus> vec(4);
     for(unsigned i=0; i<4; i++) {

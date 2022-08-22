@@ -9,10 +9,10 @@ def from_ascii(s,beg,end):
 #    print l,o
     return o
 
-def convert(s,beg,f,u):
+def convert(s,beg,f):
     l = s.split()
     v = int(l[beg],16)*256 + int(l[beg+1],16)
-    return '%f %s'%(v*f,u)
+    return v*f
 
 def bmask(s,beg,end):
     l = s.split()[beg:end]
@@ -46,17 +46,29 @@ class SFF8472:
             adx = adx+24
 
         return result
-            
+
+    def vendor(self):
+        return from_ascii(self.eeprom_data,20,36)
+
+    def temp(self):
+        return convert(self.eeprom_diag,40,1./256.)
+
+    def txpwr(self):
+        return convert(self.eeprom_diag,46,0.0001)
+
+    def rxpwr(self):
+        return convert(self.eeprom_diag,48,0.0001)
+
     def dump(self):
         print 'eeprom_data:',self.eeprom_data
         print 'eeprom_diag:',self.eeprom_diag
-        print 'Vendor: ',from_ascii(self.eeprom_data,20,36)
+        print 'Vendor: ',self.vendor()
         print 'SN    : ',from_ascii(self.eeprom_data,69,84)
-        print 'temp (raw): ',convert(self.eeprom_diag,40,1./256.,'degC')
-        print 'vcc  (raw): ',convert(self.eeprom_diag,42,0.0001,'V')
-        print 'ibias(raw): ',convert(self.eeprom_diag,44,0.002,'mA')
-        print 'txpwr(raw): ',convert(self.eeprom_diag,46,0.0001,'mW')
-        print 'rxpwr(raw): ',convert(self.eeprom_diag,48,0.0001,'mW')
+        print 'temp (raw): {:} degC',self.temp()
+        print 'vcc  (raw): {:} V' ,convert(self.eeprom_diag,42,0.0001)
+        print 'ibias(raw): {:} mW',convert(self.eeprom_diag,44,0.002)
+        print 'txpwr(raw): {:} mW',self.txpwr()
+        print 'rxpwr(raw): {:} mW',self.rxpwr()
 
 class TFO:
     def __init__(self, shm, slot):
@@ -73,19 +85,29 @@ class TFO:
             if 0 == (self.modabs & (1<<i)):
                 self.sfp.append(SFF8472(shm,slot,i))
 
-    def dump(self):
+    def dump(self,verbose):
         print 'fault : 0x%x'%self.fault
         print 'los   : 0x%x'%self.los
         print 'modabs: 0x%x'%self.modabs
+
+        if verbose:
+            for i in self.sfp:
+                i.dump()
+
+        print(' SFP |      Vendor      |  Temp | TxPwr | RxPwr ')
+        print('------------------------------------------')
+        fmt = ' {:3d} | {:16s} | {:2.2f} | {:2.2f} | {:2.2f}'
         for i in self.sfp:
-            i.dump()
-        
+            print(fmt.format(i.chan,i.vendor(),i.temp(),i.txpwr(),i.rxpwr()))
+        print('------------------------------------------')
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='TFO SFP explorer')
     parser.add_argument("shm", help="shelf manager")
     parser.add_argument("slot", help="slot number",type=int)
+    parser.add_argument("--verbose", help="verbose",action='store_true')
     args = parser.parse_args()
 
     tfo = TFO(args.shm, args.slot)
-    tfo.dump()
+    tfo.dump(args.verbose)
