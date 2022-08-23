@@ -666,9 +666,13 @@ namespace TPGen {
       CPSW_TRY_CATCH( _private->bsaTimestamp->getVal(v,2,&rng) );
       if (v[1]==0) // bit mask of bsa arrays
         break;
-      for(unsigned i=0; i<64 && v[1]; i++) {
-        v[1] &= ~(1ULL<<i);
-        ts[i] = v[0]; // the timestamp
+      for(unsigned i=0; i<64; i++) {
+        if (v[1] & (1ULL<<i)) {
+          v[1] &= ~(1ULL<<i);
+          ts[i] = v[0]; // the timestamp
+          if (v[1]==0)
+            break;
+        }
       }
     }
     return ts;
@@ -820,16 +824,19 @@ namespace TPGen {
     unsigned irqControl=0; SET_REG(IrqControl, irqControl);
     while(1) {
       unsigned irqStatus = GET_U32(IrqStatus);
+
       irqStatus &= ~(1<<IRQ_BSA); // 09-29-2017, Kukhee Kim, quick bandage to ignore BSA ireq
+      irqStatus &= ~(1<<IRQ_CHECKPOINT); // 08-23-2022, Matt Weaver, ignore these as well
       if (irqStatus==0) {
         usleep(10000);
       }
       else {
+
         if (0) {
           timespec tv; clock_gettime(CLOCK_REALTIME,&tv);
           double dt = double(tv.tv_sec-tvo.tv_sec)+1.e-9*(double(tv.tv_nsec)-double(tvo.tv_nsec));
           tvo = tv; 
-          printf("received irqStatus %x  %f\n",irqStatus,dt); 
+          printf("received irqStatus %x  %f  faultcb %p\n",irqStatus,dt,_private->faultCallback); 
         }
 
         if ((irqStatus&(1<<IRQ_INTERVAL)) && _private->intervalCallback)
@@ -859,6 +866,7 @@ namespace TPGen {
           unsigned a = w&0xffff;
           _private->sequences[a>>11]->handle(a&0x7ff);
           irqStatus = GET_U32(IrqStatus);
+          printf("IRQ_CHECKPOINT irqStatus %x\n",irqStatus);
         }
       }
 
