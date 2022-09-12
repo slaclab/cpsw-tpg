@@ -6,10 +6,15 @@
 #include <string.h>
 #include <sys/mman.h>
 #include <fcntl.h>
+//#include <cinttypes>
+#define PRIx64 "016lx"
+#define PRId64 "lu"
+
 #include <time.h>
 
 #include "tpr.hh"
 #include "tprsh.hh"
+//#include "CmdLineTools.hh"
 
 #include <string>
 
@@ -20,33 +25,37 @@ static unsigned linktest_period = 1;
 static unsigned triggerPolarity = 1;
 static unsigned triggerDelay = 1;
 static unsigned triggerWidth = 0;
+static bool     lRevMarkers = false;
 static bool     verbose = false;
-
-enum TimingMode { LCLS1=0, LCLS2=1, UED=2 };
 
 extern int optind;
 
-static void link_test          (TprReg&, TimingMode, bool lring);
-static void frame_rates        (TprReg&, TimingMode);
-static void frame_capture      (TprReg&, char, TimingMode);
+static void link_test          (TprReg&, bool lcls2, int mode, int n, bool lring);
+static void frame_rates        (TprReg&, bool lcls2, int n=1);
+static void frame_capture      (TprReg&, char, bool lcls2, unsigned frames);
 static void dump_frame         (const volatile uint32_t*);
-static bool parse_frame        (const volatile uint32_t*, uint64_t&, uint64_t&);
-static bool parse_bsa_event    (const volatile uint32_t*, uint64_t&, uint64_t&,
+static bool parse_frame        (const volatile uint32_t*, uint64_t&, uint64_t&, uint16_t&);
+static bool parse_bsa_event    (const volatile uint32_t*, uint64_t&, uint64_t&, 
                                 uint64_t&, uint64_t&, uint64_t&);
-static bool parse_bsa_control  (const volatile uint32_t*, uint64_t&, uint64_t&,
+static bool parse_bsa_control  (const volatile uint32_t*, uint64_t&, uint64_t&, 
                                 uint64_t&, uint64_t&, uint64_t&);
-static void generate_triggers  (TprReg&, TimingMode);
+static void generate_triggers  (TprReg&, bool lcls2);
 
 static void usage(const char* p) {
   printf("Usage: %s [options]\n",p);
   printf("          -d <dev>  : <tpr a/b>\n");
-  printf("          -1        : test LCLS-I  timing\n");
+  printf("          -1        : test LCLS-I timing\n");
   printf("          -2        : test LCLS-II timing\n");
-  printf("          -U        : test UED     timing\n");
+  printf("          -m <mode> : force timing protocol (0=LCLS1,1=LCLS2)\n");
   printf("          -n        : skip frame capture test\n");
+  printf("          -f <#>    : <n> frames per test (default=10)\n");
+  printf("          -N <#>    : <n> frame rate tests\n");
   printf("          -r        : dump ring buffers\n");
+  printf("          -v        : verbose\n");
+  printf("          -L        : set xbar to loopback\n");
   printf("          -D delay[,width[,polarity]]  : trigger parameters\n");
   printf("          -T <sec>  : link test period\n");
+  printf("          -R        : reverse fixed rate markers\n");
 }
 
 int main(int argc, char** argv) {
@@ -57,18 +66,26 @@ int main(int argc, char** argv) {
   int c;
   bool lUsage = false;
 
-  TimingMode tmode = LCLS1;
+  bool lTestI  = false;
+  bool lTestII = false;
   bool lFrameTest = true;
+  unsigned frames = 10;
+  int  nIterations = 1;
+  bool loopback   = false;
   bool lDumpRingb = false;
+  int mode = -1;
   char* endptr;
 
-  while ( (c=getopt( argc, argv, "12Ud:nrT:D:h?")) != EOF ) {
+  while ( (c=getopt( argc, argv, "12d:f:m:nN:rT:D:LRvh?")) != EOF ) {
     switch(c) {
-    case '1': tmode = LCLS1; break;
-    case '2': tmode = LCLS2; break;
-    case 'U': tmode = UED  ; break;
+    case '1': lTestI  = true; break;
+    case '2': lTestII = true; break;
+    case 'f': frames = strtoul(optarg,NULL,0); break;
+    case 'm': mode   = strtoul(optarg,NULL,0); break;
     case 'n': lFrameTest = false; break;
+    case 'N': nIterations = strtoul(optarg,NULL,0); break;
     case 'r': lDumpRingb = true; break;
+    case 'v': verbose = true; break;
     case 'd':
       tprid  = optarg[0];
       if (strlen(optarg) != 1) {
@@ -79,10 +96,16 @@ int main(int argc, char** argv) {
     case 'D':
       triggerWidth = 1;
       triggerDelay = strtoul(optarg,&endptr,0);
-      if (endptr[0]==',')
+      if (endptr[0]==',') 
         triggerWidth = strtoul(endptr+1,&endptr,0);
-      if (endptr[0]==',')
+      if (endptr[0]==',') 
         triggerPolarity = strtoul(endptr+1,&endptr,0);
+      break;
+    case 'L':
+      loopback = true;
+      break;
+    case 'R':
+      lRevMarkers = true;
       break;
     case 'T':
       linktest_period = strtoul(optarg,NULL,0);
@@ -138,83 +161,110 @@ int main(int argc, char** argv) {
     printf("FpgaVersion: %08X\n", reg.version.FpgaVersion);
     printf("BuildStamp: %s\n", reg.version.buildStamp().c_str());
 
-    reg.xbar.setEvr( XBar::StraightIn );
-    reg.xbar.setEvr( XBar::StraightOut);
-    reg.xbar.setTpr( XBar::StraightIn );
-    reg.xbar.setTpr( XBar::StraightOut);
+    if (loopback) {
+        reg.xbar.setEvr( XBar::LoopIn );
+        reg.xbar.setEvr( XBar::LoopOut);
+        reg.xbar.setTpr( XBar::LoopIn );
+        reg.xbar.setTpr( XBar::LoopOut);
+    }
+    else {
+        reg.xbar.setEvr( XBar::StraightIn );
+        reg.xbar.setEvr( XBar::StraightOut);
+        reg.xbar.setTpr( XBar::StraightIn );
+        reg.xbar.setTpr( XBar::StraightOut);
+    }
 
-    {
+    if (lTestII) {
       //
-      //  Validate link
+      //  Validate LCLS-II link
       //
-      link_test(reg, tmode, lDumpRingb);
+      link_test(reg, true, mode, nIterations, lDumpRingb);
 
       //
       //  Capture series of timing frames (show table)
       //
       if (lFrameTest) {
-        frame_rates  (reg, tmode);
-        frame_capture(reg,tprid, tmode);
+          frame_rates  (reg, mode!=0, nIterations);
+          frame_capture(reg,tprid, true, frames);
       }
       //
       //  Generate triggers (what device can digitize them)
       //
       if (triggerWidth)
-        generate_triggers(reg, tmode);
+        generate_triggers(reg, mode!=0);
+    }
+
+    if (lTestI) {
+      //
+      //  Validate LCLS-I link
+      link_test(reg, false, mode, nIterations, lDumpRingb);
+
+      //
+      //  Capture series of timing frames (show table)
+      //
+      if (lFrameTest) {
+        frame_rates  (reg, mode==1, nIterations);
+        frame_capture(reg,tprid, false, frames);
+      }
+      //
+      //  Generate triggers
+      //
+      if (triggerWidth)
+        generate_triggers(reg, mode==1);
     }
   }
 
   return 0;
 }
 
-void link_test(TprReg& reg, TimingMode tmode, bool lring)
+void link_test(TprReg& reg, bool lcls2, int mode, int n, bool lring)
 {
-  static const double ClkMin[] = { 118, 184, 118 };
-  static const double ClkMax[] = { 120, 187, 120 };
-  static const double FrameMin[] = { 356, 928000, 356 };
-  static const double FrameMax[] = { 362, 929000, 362 };
-  unsigned ilcls = unsigned(tmode);
+  static const double ClkMin[] = { 118, 184 };
+  static const double ClkMax[] = { 120, 187 };
+  static const double FrameMin[] = { 356, 928000 };
+  static const double FrameMax[] = { 362, 929000 };
+  unsigned ilcls = lcls2 ? 1:0;
 
-  // clkSel chooses the reference clock and the sfp module
-  reg.tpr.clkSel(tmode==LCLS2);
-  // modeSel chooses the protocol
-  reg.tpr.modeSel(tmode!=LCLS1);
-  reg.tpr.modeSelEn(true);
+  reg.tpr.clkSel(lcls2);
+  reg.tpr.modeSel(mode!=0);
+  reg.tpr.modeSelEn(mode>=0);
   reg.tpr.rxPolarity(false);
-  usleep(100000);
-  reg.tpr.resetCounts();
-  unsigned rxclks0 = reg.tpr.RxRecClks;
-  unsigned txclks0 = reg.tpr.TxRefClks;
-  usleep(linktest_period*1000000);
-  unsigned rxclks1 = reg.tpr.RxRecClks;
-  unsigned txclks1 = reg.tpr.TxRefClks;
-  unsigned sofCnts = reg.tpr.SOFcounts;
-  unsigned crcErrs = reg.tpr.CRCerrors;
-  unsigned decErrs = reg.tpr.RxDecErrs;
-  unsigned dspErrs = reg.tpr.RxDspErrs;
-  double rxClkFreq = double(rxclks1-rxclks0)*16.e-6;
-  printf("RxRecClkFreq: %7.2f  %s\n",
-         rxClkFreq,
-         (rxClkFreq > ClkMin[ilcls] &&
-          rxClkFreq < ClkMax[ilcls]) ? "PASS":"FAIL");
-  double txClkFreq = double(txclks1-txclks0)*16.e-6;
-  printf("TxRefClkFreq: %7.2f  %s\n",
-         txClkFreq,
-         (txClkFreq > ClkMin[ilcls] &&
-          txClkFreq < ClkMax[ilcls]) ? "PASS":"FAIL");
-  printf("SOFcounts   : %7u  %s\n",
-         sofCnts,
-         (sofCnts > FrameMin[ilcls] &&
-          sofCnts < FrameMax[ilcls]) ? "PASS":"FAIL");
-  printf("CRCerrors   : %7u  %s\n",
-         crcErrs,
-         crcErrs == 0 ? "PASS":"FAIL");
-  printf("DECerrors   : %7u  %s\n",
-         decErrs,
-         decErrs == 0 ? "PASS":"FAIL");
-  printf("DSPerrors   : %7u  %s\n",
-         dspErrs,
-         dspErrs == 0 ? "PASS":"FAIL");
+  do {
+      usleep(100000);
+      reg.tpr.resetCounts();
+      unsigned rxclks0 = reg.tpr.RxRecClks;
+      unsigned txclks0 = reg.tpr.TxRefClks;
+      usleep(linktest_period*1000000);
+      unsigned rxclks1 = reg.tpr.RxRecClks;
+      unsigned txclks1 = reg.tpr.TxRefClks;
+      unsigned sofCnts = reg.tpr.SOFcounts;
+      unsigned crcErrs = reg.tpr.CRCerrors;
+      unsigned decErrs = reg.tpr.RxDecErrs;
+      unsigned dspErrs = reg.tpr.RxDspErrs;
+      double rxClkFreq = double(rxclks1-rxclks0)*16.e-6;
+      printf("RxRecClkFreq: %7.2f  %s\n", 
+             rxClkFreq,
+             (rxClkFreq > ClkMin[ilcls] &&
+              rxClkFreq < ClkMax[ilcls]) ? "PASS":"FAIL");
+      double txClkFreq = double(txclks1-txclks0)*16.e-6;
+      printf("TxRefClkFreq: %7.2f  %s\n", 
+             txClkFreq,
+             (txClkFreq > ClkMin[ilcls] &&
+              txClkFreq < ClkMax[ilcls]) ? "PASS":"FAIL");
+      printf("SOFcounts   : %7u  %s\n",
+             sofCnts,
+             (sofCnts > FrameMin[ilcls] &&
+              sofCnts < FrameMax[ilcls]) ? "PASS":"FAIL");
+      printf("CRCerrors   : %7u  %s\n",
+             crcErrs,
+             crcErrs == 0 ? "PASS":"FAIL");
+      printf("DECerrors   : %7u  %s\n",
+             decErrs,
+             decErrs == 0 ? "PASS":"FAIL");
+      printf("DSPerrors   : %7u  %s\n",
+             dspErrs,
+             dspErrs == 0 ? "PASS":"FAIL");
+  } while (--n);
 
   reg.tpr.dump();
   reg.csr.dump();
@@ -249,105 +299,77 @@ void link_test(TprReg& reg, TimingMode tmode, bool lring)
   reg.ring1.dump  ("%08x");
 }
 
-void frame_rates(TprReg& reg, TimingMode tmode)
+void frame_rates(TprReg& reg, bool lcls2, int n)
 {
   const unsigned nrates=7;
-  unsigned ilcls = unsigned(tmode);
+  unsigned ilcls = lcls2 ? nrates : 0;
   unsigned rates[nrates];
-  static const unsigned rateMin[][7] = {
-      {    356,   116,   56,  27,  8, 3, 0 },
-      { 909999, 69999, 9999, 999, 99, 9, 0 },
-      { 499999, 71427, 9999, 999, 99, 9, 0 } };
-  static const unsigned rateMax[][7] = {
-      {    364,   124,    64,   33,  12,  7, 2, },
-      { 910001, 70001, 10001, 1001, 101, 11, 2, },
-      { 500001, 71429, 10001, 1001, 101, 11, 2 } };
+  static const unsigned rateMin[] = { 356, 116, 56, 27,  8, 3, 0, 909999, 69999,  9999,  999,  99,  9, 0 };
+  static const unsigned rateMax[] = { 364, 124, 64, 33, 12, 7, 2, 910001, 70001, 10001, 1001, 101, 11, 2 };
 
-  for(unsigned i=0; i<nrates; i++) {
-    if (ilcls) // FixedRate
-      reg.base.channel[i].evtSel  = (1<<30) | i;
-    else {
-      switch(i) {
-      case 0:
-        reg.base.channel[i].evtSel  = (1<<30) | (1<<11) | (0x3f<<3);
-        break;
-      case 1:
-        reg.base.channel[i].evtSel  = (1<<30) | (1<<11) | (0x11<<3);
-        break;
-      default:
-        reg.base.channel[i].evtSel  = (1<<30) | (1<<11) | ((i-2)<<0) | (0x1<<3);
-        break;
+  //  for(unsigned i=0; i<nrates; i++) {
+  for(unsigned i=0; i<TprBase::NCHANNELS; i++) {
+    //for(unsigned i=0; i<12; i++) {
+      if (lcls2)
+          reg.base.channel[i].evtSel  = (1<<30) | (i%nrates);
+      else {
+          switch(i%nrates) {
+          case 0:
+              reg.base.channel[i].evtSel  = (1<<30) | (1<<11) | (0x3f<<3);
+              break;
+          case 1:
+              reg.base.channel[i].evtSel  = (1<<30) | (1<<11) | (0x11<<3);
+              break;
+          default:
+              reg.base.channel[i].evtSel  = (1<<30) | (1<<11) | (((i%nrates)-2)<<0) | (0x1<<3);
+              break;
+          }
       }
-    }
-    reg.base.channel[i].control = 1;
+      reg.base.channel[i].control = 1;
   }
 
-  usleep(2000000);
+  do {
+      usleep(2000000);
 
-  for(unsigned i=0; i<nrates; i++)
-    rates[i] = reg.base.channel[i].evtCount;
+      for(unsigned i=0; i<nrates; i++)
+          rates[i] = reg.base.channel[i].evtCount;
 
-  for(unsigned i=0; i<nrates; i++) {
-    unsigned rate = rates[i];
-    printf("FixedRate[%i]: %7u  %s\n",
-           i, rate,
-           (rate > rateMin[ilcls][i] &&
-            rate < rateMax[ilcls][i]) ? "PASS":"FAIL");
-    reg.base.channel[i].control = 0;
-  }
+      for(unsigned i=0; i<nrates; i++) {
+          unsigned rate = rates[i];
+          unsigned ridx = lRevMarkers ? 6-i+ilcls : i+ilcls;
+          printf("FixedRate[%i]: %7u  %s\n",
+                 i, rate, 
+                 (rate > rateMin[ridx] && 
+                  rate < rateMax[ridx]) ? "PASS":"FAIL");
+      }
+  } while (--n);
+
+  // for(unsigned i=0; i<TprBase::NCHANNELS; i++) {
+  //     reg.base.channel[i].control = 0;
+  // }
 }
 
-void frame_capture(TprReg& reg, char tprid, TimingMode tmode )
+class ThreadArgs {
+public:
+    ThreadArgs(int _fd, void* _qptr, int _idx, char _tpr_id, bool _lcls2, unsigned _frames) :
+        fd(_fd), qptr(_qptr), idx(_idx), tpr_id(_tpr_id), lcls2(_lcls2), frames(_frames) {}
+public:
+    int  fd;
+    void* qptr;
+    int  idx;
+    char tpr_id;
+    bool lcls2;
+    unsigned frames;
+};
+
+void* frame_capture_thread(void* a)
 {
-  int idx=11;
-  char dev[16];
-  sprintf(dev,"/dev/tpr%c%x",tprid,idx);
-
-  int fd = open(dev, O_RDONLY);
-  if (fd<0) {
-    printf("Open failure for dev %s [FAIL]\n",dev);
-    perror("Could not open");
-    return;
-  }
-
-  void* ptr = mmap(0, sizeof(TprQueues), PROT_READ, MAP_SHARED, fd, 0);
-  if (ptr == MAP_FAILED) {
-    perror("Failed to map - FAIL");
-    return;
-  }
-
-  printf("ptr %p\n", ptr);
-
-  unsigned _channel = idx;
-  unsigned ucontrol = reg.base.channel[_channel].control;
-  reg.base.channel[_channel].control = 0;
-
-  reg.base.dump();
-
-  unsigned urate   = tmode!=LCLS1 ? 0 : (1<<11) | (0x3f<<3); // max rate
-  unsigned destsel = 1<<17; // BEAM - DONT CARE
-  reg.base.channel[_channel].evtSel = (destsel<<13) | (urate<<0);
-  reg.base.channel[_channel].bsaDelay = 0;
-  reg.base.channel[_channel].bsaWidth = 1;
-  reg.base.channel[_channel].control = ucontrol | 1;
-
-  //  follow bsa
-
-  char devbsa[16];
-  sprintf(devbsa,"/dev/tpr%cBSA",tprid);
-  int fdbsa = open(dev, O_RDONLY);
-  if (fdbsa<0) {
-    printf("Open failure for dev %s [FAIL]\n",devbsa);
-    perror("Could not open");
-    return;
-  }
-
-  reg.csr.dump();
-
-  //  read the captured frames
-
-  printf("   %16.16s %8.8s %8.8s\n",
-         "PulseId","Seconds","Nanosec");
+  ThreadArgs* args = (ThreadArgs*)a;
+  int      fd      = args->fd;
+  void*    ptr     = args->qptr;
+  int      idx     = args->idx;
+  bool     lcls2   = args->lcls2;
+  unsigned frames  = args->frames;
 
   TprQueues& q = *(TprQueues*)ptr;
 
@@ -356,56 +378,173 @@ void frame_capture(TprReg& reg, char tprid, TimingMode tmode )
   int64_t allrp = q.allwp[idx];
   int64_t bsarp = q.bsawp;
 
-  printf("allrp %llx  q.allwp[%d] %llx\n", allrp, idx, q.allwp[idx]);
-
   read(fd, buff, 32);
-  read(fdbsa, buff, 32);
-  usleep(tmode!=LCLS1 ? 20 : 100000);
+
+  //  usleep(lcls2 ? 20 : 100000);
+  //  usleep(100000);
   //  disable channel 0
-  reg.base.channel[_channel].control = ucontrol;
+  //  reg.base.channel[_channel].control = ucontrol;
 
   uint64_t pulseIdP=0;
   uint64_t pulseId, timeStamp;
+  uint16_t markers;
   unsigned nframes=0;
 
+  const unsigned _1HzM = lRevMarkers ? 0x1 : 0x40;
+
+  if (verbose) {
+    for(unsigned i=0; i<14; i++) {
+      printf("idx %x  allrp %" PRIx64 "  q.allwp %" PRIx64 "  q.allrp.idx %" PRIx64 "\n",
+             i, allrp, q.allwp[i], q.allrp[i].idx[allrp &(MAX_TPR_ALLQ-1)]);
+    }
+  }
+
   do {
-    printf("allrp %llx  q.allwp[%d] %llx\n", allrp, idx, q.allwp[idx]);
-    while(allrp < q.allwp[idx] && nframes<10) {
+    while(allrp < q.allwp[idx] && (nframes<frames || frames==0)) {
       const volatile uint32_t* p = reinterpret_cast<const volatile uint32_t*>
         (&q.allq[q.allrp[idx].idx[allrp &(MAX_TPR_ALLQ-1)] &(MAX_TPR_ALLQ-1) ].word[0]);
-      if (verbose)
+      if (verbose) {
+          printf("allrp %" PRIx64 "  q.allwp %" PRIx64 "  q.allrp.idx %" PRIx64 "\n",
+                 allrp, q.allwp[idx], q.allrp[idx].idx[allrp &(MAX_TPR_ALLQ-1)]);
         dump_frame(p);
-      if (parse_frame(p, pulseId, timeStamp)) {
+        verbose = false;
+      }
+      if (parse_frame(p, pulseId, timeStamp, markers)) {
         if (pulseIdP) {
+            //  EvrCardG2 replaces PulseId with Timestamp
+            //  Timestamp increments at 1MHz and jumps at next fiducial
           uint64_t pulseIdN = pulseIdP+1;
-          if (tmode==LCLS1) pulseIdN = (pulseId&~0x1ffffULL) | (pulseIdN&0x1ffffULL);
-          printf(" 0x%016llx %9u.%09u %s\n",
-                 (unsigned long long)pulseId,
-                 unsigned(timeStamp>>32),
-                 unsigned(timeStamp&0xffffffff),
-                 (pulseId==pulseIdN) ? "PASS":"FAIL");
+          if (!lcls2) pulseIdN = (pulseId&~0x1ffffULL) | (pulseIdN&0x1ffffULL);
+          if (frames) {
+              printf(" 0x%016llx %9u.%09u %s\n", 
+                     (unsigned long long)pulseId, 
+                     unsigned(timeStamp>>32), 
+                     unsigned(timeStamp&0xffffffff),
+                     (pulseId==pulseIdN) ? "PASS":"FAIL");
+          }
+          else if (pulseId!=pulseIdN && ((markers&0x400)==0)) {  // 60Hz marker makes TS jump
+              printf(" 0x%016llx %9u.%09u %" PRId64 "\n", 
+                     (unsigned long long)pulseId, 
+                     unsigned(timeStamp>>32), 
+                     unsigned(timeStamp&0xffffffff),
+                     (pulseId-pulseIdN));
+          }
+          else if ((markers&_1HzM)==_1HzM) {
+              printf(" 0x%016llx %9u.%09u -\n", 
+                     (unsigned long long)pulseId, 
+                     unsigned(timeStamp>>32), 
+                     unsigned(timeStamp&0xffffffff));
+          }
           nframes++;
         }
         pulseIdP  =pulseId;
       }
       allrp++;
     }
-    if (nframes>=10)
+    if (nframes>=frames && frames!=0) 
       break;
+    usleep(10000);
     read(fd, buff, 32);
   } while(1);
 
+  return 0;
+}
+
+void frame_capture(TprReg& reg, char tprid, bool lcls2, unsigned frames)
+{
+  int idx=13;
+  char dev[16];
+  sprintf(dev,"/dev/tpr%c%x",tprid,idx);
+
+  if (0) {
+    printf("frame_capture early exit\n");
+    return;
+  }
+
+  int fd = open(dev, O_RDONLY);
+  if (fd<0) {
+    printf("Open failure for dev %s [FAIL]\n",dev);
+    perror("Could not open");
+    return;
+  }
+
+  if (0) {
+    printf("frame_capture early exit\n");
+    return;
+  }
+
+  char bsadev[16];
+  sprintf(bsadev,"/dev/tpr%cBSA",tprid);
+  int fdbsa = open(bsadev, O_RDWR);
+  if (fdbsa<0) {
+      perror("Could not open");
+      return;
+  }
+
+  if (0) {  // dies with this
+    printf("frame_capture early exit\n");
+    return;
+  }
+
+
+  void* ptr = mmap(0, sizeof(TprQueues), PROT_READ, MAP_SHARED, fd, 0);
+  if (ptr == MAP_FAILED) {
+    perror("Failed to map - FAIL");
+    return;
+  }
+
+  unsigned _channel = idx;
+  unsigned ucontrol = reg.base.channel[_channel].control;
+  reg.base.channel[_channel].control = 0;
+
+  reg.base.dump();
+
+  unsigned urate   = lcls2 ? (lRevMarkers ? 6:0) : (1<<11) | (0x3f<<3); // max rate
+  //  unsigned urate   = lcls2 ? (lRevMarkers ? 3:3) : (1<<11) | (0x3f<<3); // max rate
+  unsigned destsel = 1<<17; // BEAM - DONT CARE
+  reg.base.channel[_channel].evtSel = (destsel<<13) | (urate<<0);
+  reg.base.channel[_channel].bsaDelay = 0;
+  reg.base.channel[_channel].bsaWidth = 1;
+  reg.base.channel[_channel].control = ucontrol | 1;
+
+  //  read the captured frames
+
+  printf("   %16.16s %8.8s %8.8s\n",
+         "PulseId","Seconds","Nanosec");
+
+  ThreadArgs args(fd, ptr, idx, tprid, lcls2, frames);
+  frame_capture_thread(&args);
+
+  TprQueues& q = *(TprQueues*)ptr;
+
+  char* buff = new char[32];
+
+  int64_t allrp = q.allwp[idx];
+  int64_t bsarp = q.bsawp;
+
+  read(fdbsa, buff, 32);
+  //  usleep(lcls2 ? 20 : 100000);
+  //  usleep(100000);
+  //  disable channel 0
+  //  reg.base.channel[_channel].control = ucontrol;
+
+  uint64_t pulseIdP=0;
+  uint64_t pulseId, timeStamp;
+  uint16_t markers;
+  unsigned nframes=0;
+
+  printf("BSA frames\n");
 
   uint64_t active, avgdn, update, init, minor, major;
   nframes = 0;
   do {
-    while(bsarp < q.bsawp && nframes<10) {
+    while(bsarp < q.bsawp && nframes<frames) {
       const volatile uint32_t* p = reinterpret_cast<const volatile uint32_t*>
         (&q.bsaq[bsarp &(MAX_TPR_BSAQ-1)].word[0]);
       if (parse_bsa_control(p, pulseId, timeStamp, init, minor, major)) {
         printf(" 0x%016llx %9u.%09u I%016llx m%016llx M%016llx\n",
-               (unsigned long long)pulseId,
-               unsigned(timeStamp>>32),
+               (unsigned long long)pulseId, 
+               unsigned(timeStamp>>32), 
                unsigned(timeStamp&0xffffffff),
                (unsigned long long)init,
                (unsigned long long)minor,
@@ -413,8 +552,8 @@ void frame_capture(TprReg& reg, char tprid, TimingMode tmode )
       }
       if (parse_bsa_event(p, pulseId, timeStamp, active, avgdn, update)) {
         printf(" 0x%016llx %9u.%09u A%016llx D%016llx U%016llx\n",
-               (unsigned long long)pulseId,
-               unsigned(timeStamp>>32),
+               (unsigned long long)pulseId, 
+               unsigned(timeStamp>>32), 
                unsigned(timeStamp&0xffffffff),
                (unsigned long long)active,
                (unsigned long long)avgdn,
@@ -423,14 +562,17 @@ void frame_capture(TprReg& reg, char tprid, TimingMode tmode )
       }
       bsarp++;
     }
-    if (nframes>=10)
+    if (nframes>=frames) 
       break;
+    usleep(10000);
     read(fdbsa, buff, 32);
   } while(1);
 
+  //  disable channel 0
+  reg.base.channel[_channel].control = ucontrol;
+
   munmap(ptr, sizeof(TprQueues));
   close(fd);
-  close(fdbsa);
 }
 
 void dump_frame(const volatile uint32_t* p)
@@ -443,25 +585,26 @@ void dump_frame(const volatile uint32_t* p)
            (p[0]>>0)&0xffff,p[1],m,pl[0],pl[1]);
     for(unsigned i=6; i<20; i++)
       printf(" %08x",p[i]);
-    printf("\n");
+    printf("\n"); 
   }
 }
 
 bool parse_frame(const volatile uint32_t* p,
-                 uint64_t& pulseId, uint64_t& timeStamp)
+                 uint64_t& pulseId, uint64_t& timeStamp, uint16_t& markers)
 {
   //  char m = p[0]&(0x808<<20) ? 'D':' ';
   if (((p[0]>>16)&0xf)==0) { // EVENT_TAG
     const volatile uint64_t* pl = reinterpret_cast<const volatile uint64_t*>(p+2);
-    pulseId = pl[0];
+    pulseId   = pl[0];
     timeStamp = pl[1];
+    markers   = pl[2]&0xffff;
     return true;
   }
   return false;
 }
 
 bool parse_bsa_event(const volatile uint32_t* p,
-                     uint64_t& pulseId, uint64_t& timeStamp,
+                     uint64_t& pulseId, uint64_t& timeStamp, 
                      uint64_t& active, uint64_t& avgdone, uint64_t& update)
 {
   if (((p[0]>>16)&0xf)==2) { // BSAEVNT_TAG
@@ -476,7 +619,7 @@ bool parse_bsa_event(const volatile uint32_t* p,
 }
 
 bool parse_bsa_control(const volatile uint32_t* p,
-                       uint64_t& pulseId, uint64_t& timeStamp,
+                       uint64_t& pulseId, uint64_t& timeStamp, 
                        uint64_t& init, uint64_t& minor, uint64_t& major)
 {
   if (((p[0]>>16)&0xf)==1) { // BSACNTL_TAG
@@ -491,18 +634,19 @@ bool parse_bsa_control(const volatile uint32_t* p,
   return false;
 }
 
-void generate_triggers(TprReg& reg, TimingMode tmode)
+void generate_triggers(TprReg& reg, bool lcls2)
 {
   unsigned _channel = 0;
-  for(unsigned i=0; i<12; i++)
+  reg.base.setupTrigger(0,_channel,triggerPolarity,0,triggerWidth);
+  for(unsigned i=1; i<12; i++) 
     reg.base.setupTrigger(i,
-                          1<<_channel,
+                          _channel,
                           triggerPolarity, triggerDelay, triggerWidth+i, 0); // polarity, delay, width, tap
 
   unsigned ucontrol = 0;
   reg.base.channel[_channel].control = ucontrol;
 
-  unsigned urate   = tmode!=LCLS1 ? 0 : (1<<11) | (0x3f<<3); // max rate
+  unsigned urate   = lcls2 ? (lRevMarkers ? 6:0) : (1<<11) | (0x3f<<3); // max rate
   //unsigned urate   = (1<<11) | (0x9<<3); // max rate
   unsigned destsel = 1<<17; // BEAM - DONT CARE
   reg.base.channel[_channel].evtSel = (destsel<<13) | (urate<<0);

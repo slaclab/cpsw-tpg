@@ -27,6 +27,7 @@ void TprCsr::dump() const {
 
 void TprBase::dump() const {
   static const unsigned NChan=14;
+  //static const unsigned NChan=12;
   static const unsigned NTrig=12;
   printf("\nchannel0  [%p]\n",&channel[0].control);
 #define CHAN_REG(reg) {                                                 \
