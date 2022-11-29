@@ -612,7 +612,6 @@ namespace TPGen {
           unsigned v = selection->word();
           CPSW_TRY_CATCH( IScalVal::create(_private->tpg->findByName("TPGControl/BsaEventSel"))->setVal(&v,1,&rng) );
           v = (nToAverage&0x1fff) | 
-            ((avgToAcquire == MAXACQBSA) ? 0x2000 : 0) | 
             ((maxSevr&3)<<14) |
 	    (avgToAcquire<<16);
           CPSW_TRY_CATCH( IScalVal::create(_private->tpg->findByName("TPGControl/BsaStatSel"))->setVal(&v,1,&rng) );
