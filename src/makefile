@@ -1,9 +1,9 @@
 CCACHE_DISABLE=1
 
 
-CPSW_DIR=/afs/slac/g/lcls/package/cpsw/framework/R4.4.1/src
+CPSW_DIR=/afs/slac/g/lcls/package/cpsw/framework/R4.4.1-crash_debugging/src
 BSA_DIR=/afs/slac/g/lcls/package/timing/bsa
-BSA_VERSION=R1.2.0
+BSA_VERSION=R2.0.0-2.0-crash_debugging
 BSA=$(BSA_DIR)/$(BSA_VERSION)
 
 # may override CPSW_DIR / DEVICELIB_DIR from release.mak
