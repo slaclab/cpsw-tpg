@@ -828,7 +828,7 @@ namespace TPGen {
       irqStatus &= ~(1<<IRQ_BSA); // 09-29-2017, Kukhee Kim, quick bandage to ignore BSA ireq
       irqStatus &= ~(1<<IRQ_CHECKPOINT); // 08-23-2022, Matt Weaver, ignore these as well
       if (irqStatus==0) {
-        usleep(10000);
+        usleep(100000);
       }
       else {
 
