@@ -219,6 +219,9 @@ namespace TPGen {
     virtual unsigned getSeqRequests  (unsigned seq) const = 0; 
     virtual unsigned getSeqRequests  (unsigned seq, unsigned bit) const = 0; 
     virtual unsigned getSeqRequests  (unsigned* array, unsigned array_size) const = 0;
+    // Sequence actual rate requests
+    virtual unsigned getSeqRateRequests  (unsigned seq) const = 0;
+    virtual unsigned getSeqRateRequests  (unsigned* array, unsigned array_size) const = 0;
     //
     //  Programmable rate counters (NRateCounters)
     //

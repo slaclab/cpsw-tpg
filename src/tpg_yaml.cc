@@ -223,7 +223,7 @@ namespace TPGen {
   { unsigned n;
     CPSW_TRY_CATCH( n = GET_U32(NArraysBsa) );
     return n; }
-
+  
   unsigned TPGYaml::seqAddrWidth () const
   { unsigned n;
     CPSW_TRY_CATCH( n = GET_U32(SeqAddrLen) );
@@ -688,15 +688,13 @@ namespace TPGen {
   unsigned TPGYaml::getInputTrigs   (unsigned ch) const { unsigned u; CPSW_TRY_CATCH( u = GET_U32SI(CountTrig,ch) ); return u;}
   unsigned TPGYaml::getSeqRequests  (unsigned seq) const { return getSeqRequests(seq,0); }
   unsigned TPGYaml::getSeqRequests  (unsigned seq, unsigned bit) const { 
-    char buff[256];
-    sprintf(buff,"TPGStatus/CountSeq[%u]/Count",seq);
-    unsigned u;
-    CPSW_TRY_CATCH( u = _GET_U32(buff,_private->tpg,bit) ); 
-    return u;
+    IndexRange rng(seq*4+bit);
+    unsigned v;
+    CPSW_TRY_CATCH(IScalVal_RO::create(_private->tpg->findByName("TPGStatus/CountSeq"))->getVal(&v,1,&rng));
+    return v;
   }
-  unsigned TPGYaml::getSeqRequests  (unsigned* array, unsigned array_size) const
-  { for(unsigned i=0; i<array_size; i++)
-      array[i] = getSeqRequests(i/4,i%4);
+  unsigned TPGYaml::getSeqRequests  (unsigned* array, unsigned array_size) const { 
+    CPSW_TRY_CATCH(IScalVal_RO::create(_private->tpg->findByName("TPGStatus/CountSeq"))->getVal(array,array_size));
     return array_size;
   }
   unsigned TPGYaml::getSeqRateRequests  (unsigned seq) const { unsigned u; CPSW_TRY_CATCH( u = _GET_U32("DestRate/Destn",_private->core,seq) ); return u;}
