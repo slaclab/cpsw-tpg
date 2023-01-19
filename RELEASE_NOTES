@@ -1,3 +1,7 @@
+R1.6.4     01/18/2023    Kukhee Kim
+           - optimize sequence requres rate count access
+           - increase poll interval for irq status from 10ms to 100m
+
 R1.6.3     08/23/2022    C. B. Mattison
 	   - merge branch to pick up INHIBIT and BSA TPG Timestamp
 
