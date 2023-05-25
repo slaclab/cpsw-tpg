@@ -35,12 +35,14 @@ namespace TPGen {
       IndexRange rng(15);   
       unsigned v = (addr&0xfff) | ((pclass&0xf)<<12) | (sync<<16);
       _startAddr->setVal(&v,1,&rng); 
+      _startAddrCache[15] = v;
     }
     void    setBcsStart(unsigned   addr,
                         unsigned   pclass) { 
       IndexRange rng(14);
       unsigned v = (addr&0xfff) | ((pclass&0xf)<<12);
       _startAddr->setVal(&v,1,&rng); 
+      _startAddrCache[14] = v;
     }
     void    setMpsStart(unsigned   chan,
                         unsigned   addr,
@@ -48,19 +50,20 @@ namespace TPGen {
       IndexRange rng(chan); 
       unsigned v = (addr&0xfff) | ((pclass&0xf)<<12);
       _startAddr->setVal(&v,1,&rng); 
+      _startAddrCache[chan] = v;
     }
     void    setMpsState(unsigned   val ,
                         unsigned   sync) 
     { unsigned a,p;
-      { IndexRange rng(val);
-        _startAddr->getVal(&a,1,&rng);
-        p = (a>>12)&0xf;
-        a &= 0xfff; }
+      a = _startAddrCache[val];
+      p = (a>>12)&0xf;
+      a &= 0xfff;
       setManStart(a,p,sync); }
       
  private:
     ScalVal _startAddr;
     unsigned _engine;
+    unsigned _startAddrCache[16];
   };
 
   class SeqWord {
