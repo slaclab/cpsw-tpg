@@ -221,7 +221,7 @@ SequenceEngineYaml::SequenceEngineYaml(Path    ramPath,
                                        unsigned  addrWidth) :
   _private(new SequenceEngineYaml::PrivateData(ramPath,
                                                reset,
-                                            start,
+                                               start,
                                                jumpPath,
                                                id,
                                                req))
@@ -432,11 +432,11 @@ void SequenceEngineYaml::reset()
 {
   uint32_t v[4];
   memset(v,0,sizeof(v));
-  v[_private->_id/3] = 1U<<(_private->_id%32);
+  v[_private->_id >> 5] = 1U<<(_private->_id & 0x1f);
   { IndexRange rng(0,3);
     _private->_reset->setVal(v,4,&rng); }
   { IndexRange rng(0);
-    _private->_start->setVal(v,1,&rng); }
+    _private->_start->setVal(v,1,&rng); }  // the value doesn't matter
 }
 
 void SequenceEngineYaml::setMPSJump    (int mps, int seq, unsigned pclass, unsigned start)
