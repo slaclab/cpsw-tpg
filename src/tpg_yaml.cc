@@ -659,21 +659,13 @@ namespace TPGen {
 
   std::map<unsigned,uint64_t> TPGYaml::getBSATimestamps() const
   {
+    unsigned nts = nArraysBSA();
     std::map<unsigned,uint64_t> ts;
-    IndexRange rng(0,1);
-    uint64_t v[2];
-    while(1) {
-      CPSW_TRY_CATCH( _private->bsaTimestamp->getVal(v,2,&rng) );
-      if (v[1]==0) // bit mask of bsa arrays
-        break;
-      for(unsigned i=0; i<64; i++) {
-        if (v[1] & (1ULL<<i)) {
-          v[1] &= ~(1ULL<<i);
-          ts[i] = v[0]; // the timestamp
-          if (v[1]==0)
-            break;
-        }
-      }
+    IndexRange rng(0,nts-1);
+    uint64_t v[64];
+    CPSW_TRY_CATCH( _private->bsaTimestamp->getVal(v,nts,&rng) );
+    for(unsigned i=0; i<nts; i++) {
+      ts[i] = v[i];
     }
     return ts;
   }
