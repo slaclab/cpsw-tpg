@@ -1,4 +1,11 @@
-R1.6.4     05/25/2023    Matt Weaver
+R1.7.0     09/18/2023    Matt Weaver
+           - Merge branch 'R1.6.5-bsaTS-RAM'
+           - Fix sequence engine force reset bug
+           - Fetch BSA timestamp from RAM not FIFO
+           - Add software cache of MPS Allow Control table.  Fixes MPS latched state control.
+
+
+R1.6.5     05/25/2023    Matt Weaver
            - Add software cache of MPS Allow Control table.  Fixes MPS latched state control.
 
 
