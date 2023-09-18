@@ -1,3 +1,7 @@
+R1.6.4     05/25/2023    Matt Weaver
+           - Add software cache of MPS Allow Control table.  Fixes MPS latched state control.
+
+
 R1.6.4     01/18/2023    Kukhee Kim
            - optimize sequence requres rate count access
            - increase poll interval for irq status from 10ms to 100m
