@@ -1,4 +1,4 @@
-CCACHE_DISABLE=1
+CACHE_DISABLE=1
 
 
 CPSW_DIR=/afs/slac/g/lcls/package/cpsw/framework/R4.4.1/src
@@ -36,7 +36,7 @@ STATIC_LIBRARIES+=hps
 
 tpg_tst_SRCS = tpg_tst.cc app.cc
 tpg_tst_LIBS = tpg bsa hps $(CPSW_LIBS)
-PROGRAMS    += tpg_tst
+#PROGRAMS    += tpg_tst
 
 tpg_dump_SRCS = tpg_dump.cc app.cc
 tpg_dump_LIBS = tpg bsa hps $(CPSW_LIBS)
@@ -102,12 +102,21 @@ cryo_peek_SRCS = cryo_peek.cc
 cryo_peek_LIBS = $(CPSW_LIBS) hps pthread rt dl
 #PROGRAMS    += cryo_peek
 
-xvc_SRCS = xvc.cc
-xvc_LIBS = pthread rt dl
-#PROGRAMS    += xvc
-
 bld_control_SRCS = bld_control.cc
 bld_control_LIBS = $(CPSW_LIBS) hps pthread rt dl
-PROGRAMS    += bld_control
+#PROGRAMS    += bld_control
+
+mpsdbg_SRCS = mpsdbg.cc
+mpsdbg_LIBS = $(CPSW_LIBS) hps pthread rt dl
+#PROGRAMS    = mpsdbg
+#PROGRAMS    += reg_tst
+
+xcasttest_SRCS = xcasttest.cc
+xcasttest_LIBS = pthread rt dl
+
+#PROGRAMS = hps_peek
+PROGRAMS = reg_tst
+#PROGRAMS = tpg_tst
+#PROGRAMS = mpsdbg
 
 include $(CPSW_DIR)/rules.mak

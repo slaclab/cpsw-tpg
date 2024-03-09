@@ -578,6 +578,21 @@ int TPGen::execute(int argc, char* argv[], TPGen::TPG* p, bool lAsync)
   while(sleeps--) 
     sleep(1);
 
+  printf("===SeqRequest===\n");
+  unsigned requests[400];
+  p->getSeqRequests(requests,400);
+  for(unsigned i=0,j=0; i<100; i++,j+=4) {
+    printf("%03d: %08x %08x %08x %08x\n",
+           i, requests[j+0], requests[j+1], requests[j+2], requests[j+3]);
+  }
+  printf("===SeqRates===\n");
+  unsigned rates[16];
+  p->getSeqRateRequests(rates,16);
+  for(unsigned i=0; i<16; i++) {
+    printf("%03d: %08x\n",
+           i, rates[i]);
+  }
+
   printf("========\n");
   p->dump();
   p->enableSequenceIrq(false);
