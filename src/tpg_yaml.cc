@@ -256,7 +256,6 @@ namespace TPGen {
   { 
     unsigned v = m ? 1:0;
     CPSW_TRY_CATCH( SET_REG(ACMaster,v) );
-    return 0; 
   }
 
   int TPGYaml::setACDelay(unsigned v)
