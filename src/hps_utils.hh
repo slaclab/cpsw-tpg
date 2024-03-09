@@ -40,8 +40,8 @@ namespace Cphw {
     void     enable (bool);
     void     clear  ();
     void     dump   ();
-    void     clear_and_dump();
-  private:
+    void     clear_and_dump(unsigned wait_us = 100);
+  protected:
     ScalVal _csr;
     ScalVal _dump;
   };

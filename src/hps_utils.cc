@@ -106,12 +106,12 @@ void RingBuffer::dump()
   delete[] buff;
 }
 
-void RingBuffer::clear_and_dump()
+void RingBuffer::clear_and_dump(unsigned wait_us)
 {
   enable(false);
   clear();
   enable(true);
-  usleep(100);
+  usleep(wait_us);
   enable(false);
   dump();
 }

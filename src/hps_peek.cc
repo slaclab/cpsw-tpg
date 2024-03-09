@@ -155,7 +155,7 @@ int main(int argc, char* argv[])
   if (lDump0)
     t->ring0().clear_and_dump();
   if (lDump1)
-    t->ring1().clear_and_dump();
+    t->ring1().clear_and_dump(100000);
 
 
   //
