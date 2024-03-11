@@ -34,8 +34,9 @@ namespace TPGen {
     void     setClockStep  (unsigned ns, unsigned frac_num, unsigned frac_den);
     int      setBaseDivisor(unsigned v);
     void     setACMaster   (bool v);
+    void     setACPolarity (bool v);
+    int      setACTS1Chan  (unsigned v);
     int      setACDelay    (unsigned v); // in base rate triggers
-    int      setFrameDelay (unsigned v); // in 186MHz cycles
     void     setPulseID    (uint64_t);
     void     setTimestamp  (unsigned sec, unsigned nsec);
     uint64_t getPulseID() const;

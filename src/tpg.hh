@@ -86,14 +86,18 @@ namespace TPGen {
     //  markers are generated from digital inputs.
     virtual void setACMaster   (bool v) = 0;
     //
+    //  Sets the polarity of the ADC channel for time slot 1
+    //
+    virtual void setACPolarity (bool v) = 0;
+    //
+    //  Sets the ADC channel corresponding to time slot 1
+    //  Returns a negative result in case of error
+    virtual int setACTS1Chan   (unsigned v) = 0;
+    //
     //  Sets a delay before generating the powerline-synchronized
     //  markers associated with the 360Hz zero-crossing triggers
     //  Returns a negative result in case of error (delay too large)
     virtual int  setACDelay    (unsigned v) = 0; // in base rate triggers
-    //
-    //  Sets a delay before transmitting the timing frame.
-    //  Returns a negative result in case of error (delay too large)
-    virtual int  setFrameDelay (unsigned v) = 0; // in 186MHz cycles
     //
     //  Initialize the pulseID
     //

@@ -258,24 +258,32 @@ namespace TPGen {
     CPSW_TRY_CATCH( SET_REG(ACMaster,v) );
   }
 
+  int TPGYaml::setACTS1Chan(unsigned v)
+  {
+    if (v>2)
+      return -1;
+    CPSW_TRY_CATCH( SET_REG(ACTS1,v) );
+    return 0;
+  }
+
+  void TPGYaml::setACPolarity(bool m)
+  {
+    unsigned v = m ? 1:0;
+    CPSW_TRY_CATCH( SET_REG(ACPolarity,v) );
+  }
+
+  void TPGYaml::setACMaster(bool m)
+  { 
+    unsigned v = m ? 1:0;
+    CPSW_TRY_CATCH( SET_REG(ACMaster,v) );
+  }
+
   int TPGYaml::setACDelay(unsigned v)
   { 
     if (v > MAX_AC_DELAY)
       return -1;
     CPSW_TRY_CATCH( SET_REG(ACDelay,v) );
     return 0; 
-  }
-
-  int TPGYaml::setFrameDelay(unsigned v)
-  { 
-    unsigned u;
-
-    CPSW_TRY_CATCH( u = GET_U32(BaseControl) );
-    if (v < u) {
-      CPSW_TRY_CATCH( SET_REG(FrameDelay,v) );
-      return 0; 
-    }
-    return -1;
   }
 
   void TPGYaml::setPulseID(uint64_t v)
