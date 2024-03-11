@@ -272,12 +272,6 @@ namespace TPGen {
     CPSW_TRY_CATCH( SET_REG(ACPolarity,v) );
   }
 
-  void TPGYaml::setACMaster(bool m)
-  { 
-    unsigned v = m ? 1:0;
-    CPSW_TRY_CATCH( SET_REG(ACMaster,v) );
-  }
-
   int TPGYaml::setACDelay(unsigned v)
   { 
     if (v > MAX_AC_DELAY)
