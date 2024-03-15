@@ -219,6 +219,11 @@ namespace TPGen {
     CPSW_TRY_CATCH( n= GET_U32(NControlSeq) );
     return n; }
 
+  unsigned TPGYaml::nDestDiag   () const
+  { unsigned n;
+    CPSW_TRY_CATCH( n = GET_U32(NDestDiag) );
+    return n; }
+  
   unsigned TPGYaml::nArraysBSA   () const
   { unsigned n;
     CPSW_TRY_CATCH( n = GET_U32(NArraysBsa) );
@@ -598,6 +603,31 @@ namespace TPGen {
   unsigned TPGYaml::getDiagnosticSequence() const  { unsigned u; CPSW_TRY_CATCH( u = GET_U32(DiagSeq) ); return u; }
 
   void     TPGYaml::setDiagnosticSequence(unsigned v) { CPSW_TRY_CATCH( SET_U32(DiagSeq,v) ); }
+
+  unsigned TPGYaml::getBeamDiagDestinationMask(unsigned engine) const { 
+    unsigned u; 
+    char buff[256];
+    sprintf(buff,"DestDiagControl[%u]/DestMask",engine);
+    CPSW_TRY_CATCH( u = _GET_U32(buff, _private->core) );
+    return u; }
+
+  unsigned TPGYaml::getBeamDiagInterval(unsigned engine, unsigned index) const {
+    unsigned u; 
+    char buff[256];
+    sprintf(buff,"DestDiagControl[%u]/Interval",engine);
+    CPSW_TRY_CATCH( u = _GET_U32(buff, _private->core, index) );
+    return u; }
+
+  void TPGYaml::setBeamDiagDestinationMask(unsigned engine, unsigned mask) {
+    char buff[256];
+    sprintf(buff,"DestDiagControl[%u]/DestMask",engine);
+    CPSW_TRY_CATCH(_SET_U32(buff, _private->core, mask) ); }
+  
+  void TPGYaml::setBeamDiagInterval(unsigned engine, unsigned index, unsigned interval) {
+    char buff[256];
+    sprintf(buff,"DestDiagControl[%u]/Interval[%u]",engine,index);
+    CPSW_TRY_CATCH( _SET_U32(buff, _private->core, interval) );
+  }
 
   int  TPGYaml::startBSA            (unsigned array,
                                      unsigned nToAverage,

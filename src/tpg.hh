@@ -59,6 +59,10 @@ namespace TPGen {
     //
     virtual unsigned nArraysBSA  () const = 0;
     //
+    //    Number of Destination Diagnostic sequences
+    //
+    virtual unsigned nDestDiag  () const = 0;
+    //
     //    Sequence address bus width (log2 of max instructions)
     //
     virtual unsigned seqAddrWidth() const = 0;
@@ -179,6 +183,20 @@ namespace TPGen {
     //
     virtual unsigned getDiagnosticSequence() const = 0;
     virtual void     setDiagnosticSequence(unsigned) = 0;
+
+    //
+    //  Beam diagnostic BSA trigger bits
+    //    engine   : 0 to 7
+    //    mask     : 16-bit integer, one-bit per destination of interest
+    //    index    : 0 to 3
+    //    interval : minimum timing frames between assertions (or 910000/rate)
+    //
+    virtual unsigned getBeamDiagDestinationMask(unsigned engine) const = 0;
+    virtual unsigned getBeanmDiagInterval(unsigned engine, unsigned index) const = 0;
+    virtual void setBeamDiagDestinationMask(unsigned engine, unsigned mask) = 0;
+    //
+    virtual void setBeamDiagInterval(unsigned engine, unsigned index, unsigned interval) = 0;
+
     //
     //  Enable beam synchronous acquisition for one array with
     //  nToAverage consecutive samples averaged together to make one
