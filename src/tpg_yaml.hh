@@ -74,7 +74,7 @@ namespace TPGen {
     void     setDiagnosticSequence(unsigned);
 
     unsigned getBeamDiagDestinationMask(unsigned engine) const;
-    unsigned getBeanmDiagInterval(unsigned engine, unsigned index) const;
+    unsigned getBeamDiagInterval(unsigned engine, unsigned index) const;
     void setBeamDiagDestinationMask(unsigned engine, unsigned mask);
     void setBeamDiagInterval(unsigned engine, unsigned index, unsigned interval);
 

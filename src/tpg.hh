@@ -192,7 +192,7 @@ namespace TPGen {
     //    interval : minimum timing frames between assertions (or 910000/rate)
     //
     virtual unsigned getBeamDiagDestinationMask(unsigned engine) const = 0;
-    virtual unsigned getBeanmDiagInterval(unsigned engine, unsigned index) const = 0;
+    virtual unsigned getBeamDiagInterval(unsigned engine, unsigned index) const = 0;
     virtual void setBeamDiagDestinationMask(unsigned engine, unsigned mask) = 0;
     //
     virtual void setBeamDiagInterval(unsigned engine, unsigned index, unsigned interval) = 0;
