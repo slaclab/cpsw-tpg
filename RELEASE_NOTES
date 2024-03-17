@@ -1,3 +1,7 @@
+R1.8.0     03/16/2024    Matt Weaver 
+           - add setACTS1Chan() and setACPolarity() to configure AC timeslot 1
+             int align with NC timing system
+
 R1.7.0     09/18/2023    Matt Weaver
            - Merge branch 'R1.6.5-bsaTS-RAM'
            - Fix sequence engine force reset bug
