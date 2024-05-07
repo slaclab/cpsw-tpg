@@ -27,6 +27,7 @@ namespace TPGen {
     unsigned nBeamEngines () const;
     unsigned nAllowEngines() const;
     unsigned nExptEngines () const;
+    unsigned nDestDiag    () const;
     unsigned nArraysBSA   () const;
     unsigned seqAddrWidth () const;
     unsigned fifoAddrWidth() const;
@@ -71,6 +72,11 @@ namespace TPGen {
 
     unsigned getDiagnosticSequence() const;
     void     setDiagnosticSequence(unsigned);
+
+    unsigned getBeamDiagDestinationMask(unsigned engine) const;
+    unsigned getBeamDiagInterval(unsigned engine, unsigned index) const;
+    void setBeamDiagDestinationMask(unsigned engine, unsigned mask);
+    void setBeamDiagInterval(unsigned engine, unsigned index, unsigned interval);
 
     int      startBSA      (unsigned array,
 			    unsigned nToAverage,
