@@ -1,9 +1,17 @@
 CACHE_DISABLE=1
 
+ifeq ($(PACKAGE_TOP),)
+ifneq ($(EPICS_PACKAGE_TOP),)
+PACKAGE_TOP=$(EPICS_PACKAGE_TOP)
+else
+$(error PACKAGE_TOP or EPICS_PACKAGE_TOP must be provided in the environment or command line)
+endif
+endif
 
-CPSW_DIR=/afs/slac/g/lcls/package/cpsw/framework/R4.4.1/src
-BSA_DIR=/afs/slac/g/lcls/package/timing/bsa
-BSA_VERSION=R1.2.0
+CPSW_FRAMEWORK_VERSION=R4.5.2
+CPSW_DIR=$(PACKAGE_TOP)/cpsw/framework/$(CPSW_FRAMEWORK_VERSION)/src
+BSA_DIR=$(PACKAGE_TOP)/timing/bsa
+BSA_VERSION=R2.6.1
 BSA=$(BSA_DIR)/$(BSA_VERSION)
 
 # may override CPSW_DIR / DEVICELIB_DIR from release.mak
